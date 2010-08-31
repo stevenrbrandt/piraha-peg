@@ -43,7 +43,7 @@ public class Calc {
 	private static int count(Group m) {
 		int n = 1;
 		for(int i=0;i<m.groupCount();i++) {
-			n += count(m.getMatch(i));
+			n += count(m.group(i));
 		}
 		return n;
 	}
@@ -59,31 +59,31 @@ public class Calc {
 	private static double evalExpr(Group match) {
 
 		if(hasPattern(match,"powexp|expr|mulexp|num","mulop|addop|powop","powexp|expr|mulexp|num")) {
-			double n1 = eval(match.getMatch(0));
-			String op = getOp(match.getMatch(1));
-			double n2 = eval(match.getMatch(2));
+			double n1 = eval(match.group(0));
+			String op = getOp(match.group(1));
+			double n2 = eval(match.group(2));
 			return eval(n1,op,n2);
 		} else if(hasPattern(match,"expr")) {
-			return evalExpr(match.getMatch(0));
+			return evalExpr(match.group(0));
 		} else if(hasPattern(match,"powexp")) {
-			return evalExpr(match.getMatch(0));
+			return evalExpr(match.group(0));
 		} else if(hasPattern(match,"mulexp")) {
-			return evalExpr(match.getMatch(0));
+			return evalExpr(match.group(0));
 		} else if(hasPattern(match,"addexp")) {
-			return evalExpr(match.getMatch(0));
+			return evalExpr(match.group(0));
 		} else if(hasPattern(match, "neg", "val")) {
-			return -getValue(match.getMatch(1));
+			return -getValue(match.group(1));
 		} else if(hasPattern(match, "neg", "num")) {
-			return -getValue(match.getMatch(1));
+			return -getValue(match.group(1));
 		} else if(hasPattern(match, "num")) {
-			return getValue(match.getMatch(0));
+			return getValue(match.group(0));
 		}
 		StringBuffer sb = new StringBuffer();
 		sb.append("matches.size=");
 		sb.append(match.groupCount());
 		for(int i=0;i<match.groupCount();i++) {
 			sb.append(", ");
-			sb.append(match.getMatch(i).getPatternName());
+			sb.append(match.group(i).getPatternName());
 		}
 		throw new RuntimeException(sb.toString());
 	}
@@ -116,7 +116,7 @@ public class Calc {
 			return false;
 		for(int i=0;i<sl.length;i++) {
 			String haystack = "|"+sl[i]+"|";
-			String needle = "|"+match.getMatch(i).getPatternName()+"|";
+			String needle = "|"+match.group(i).getPatternName()+"|";
 			if(!haystack.contains(needle))
 				return false;
 		}

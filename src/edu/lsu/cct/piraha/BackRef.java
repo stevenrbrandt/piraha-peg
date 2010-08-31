@@ -14,7 +14,7 @@ public class BackRef extends Pattern {
 		//System.out.println("num="+num+" mc="+m.matchCount());
 		if(num >= m.groupCount())
 			return false;
-		Group backRef = m.getMatch(num);
+		Group backRef = m.group(num);
 		int begin = backRef.getBegin();
 		int end = backRef.getEnd();
 		int n = end-begin;

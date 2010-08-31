@@ -18,7 +18,7 @@ public class Group implements Cloneable {
 	public int groupCount() {
 		return subMatches.size();
 	}
-	public Group getMatch(int n) {
+	public Group group(int n) {
 		return subMatches.get(n);
 	}
 
@@ -77,6 +77,6 @@ public class Group implements Cloneable {
 	}
 	
 	public String toString() {
-		return getPatternName();
+		return substring();
 	}
 }

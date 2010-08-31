@@ -71,7 +71,7 @@ public class Grammar {
         }
         //pegMatcher.dumpMatches();
         for(Group match : pegMatcher.subMatches) {
-        	Group value = match.getMatch(0);
+        	Group value = match.group(0);
             String name = value.getPatternName();
             if("name".equals(name)) {
             	//System.out.println("start: "+match.substring());
@@ -80,15 +80,15 @@ public class Grammar {
             		if(i > 1) sb.append("{-skipper}");
             		if(true) {//match.getPatternName().equals("regex")) {
             			//System.out.println("  "+match.getPatternName()+": "+match.getMatch(i).substring());
-            			sb.append(match.getMatch(i).substring());
+            			sb.append(match.group(i).substring());
             		}
             	}
             	compile(value.substring(),sb.toString());
             } else if("import".equals(name)) {
-            	String impFile = match.getMatch(1).substring();
+            	String impFile = match.group(1).substring();
             	if(!new File(impFile).exists())
             		throw new IOException("no such file "+impFile);
-            	String impName = match.getMatch(2).substring();
+            	String impName = match.group(2).substring();
             	if(grammars == null || !grammars.containsKey(impName)) {
                 	Grammar subGrammar = new Grammar();
                 	subGrammar.compileFile(new File(impFile));

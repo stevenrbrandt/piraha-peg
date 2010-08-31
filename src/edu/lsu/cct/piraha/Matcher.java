@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
-
 public class Matcher extends Group {
 	int maxId;
 	private int textPos;
@@ -67,6 +66,14 @@ public class Matcher extends Group {
 		}
 		return true;*/
 		return pattern.match(m);
+	}
+	
+	/**
+	 * Just here to make things more similar to java.util.Regex
+	 * @return
+	 */
+	public Group group() {
+		return new Group(patternName,getBegin(),getEnd(),subMatches,text);
 	}
 	
 	public void dumpMatches() {

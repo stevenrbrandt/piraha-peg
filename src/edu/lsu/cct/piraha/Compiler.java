@@ -117,7 +117,6 @@ class Compiler {
 			char c1 = processChar();
 			while(true) {
 				if(c1 == ']' && !escaped) {
-					System.out.println("got here "+pattern.substring(0,i));
 					break;
 				}
 				if(endOfPattern) {
