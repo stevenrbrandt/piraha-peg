@@ -1,0 +1,11 @@
+skipper = \b{-w}*
+xname = [a-zA-Z0-9\-:._]+
+w = [\ \t\r\n\b]
+text = [^<>]+
+dquote = "[^"]*"
+squote = '[^']*'
+stag = <{xname}({-w}+{xname}=({dquote}|{squote}))*{w}*/>
+comment = <!--((?!-->)[^])*-->
+cdata = <!\[CDATA\[((?!\]\]>)[^])*\]\]>
+tag = <{xname}({-w}+{xname} = ({dquote}|{squote}))* (/>|>({text}|{-comment}|{cdata}|{stag}|{tag})*</\1>)
+doc = ( <!DOCTYPE\b[^>]*>|) {tag} $
