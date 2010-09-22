@@ -75,55 +75,9 @@ public class Matcher extends Group {
 	public Group group() {
 		return new Group(patternName,getBegin(),getEnd(),subMatches,text);
 	}
-	
-	public void dumpMatches() {
-		dumpMatches(text,subMatches);
-	}
+
 	public String getText() {
 		return text;
-	}
-	void dumpMatches(String text, LinkedList<Group> matches) {
-		dumpMatches(text,matches,DebugOutput.out);
-	}
-	static void dumpMatches(String text,LinkedList<Group> matches,DebugOutput out) {
-		for(Group match : matches) {
-			dumpMatches(text, match, out);
-		}
-	}
-	static void dumpMatches(String text, Group match, DebugOutput out) {
-		//out.println(match.lookup+" ["+match.before+" to "+match.after+"] \""+text.substring(match.before,match.after)+"\"");
-		out.println("<"+match.getPatternName()+">");
-		out.indent++;
-		try {
-			if(match.groupCount()==0)
-				out.println("<contents>"+xmltext(text.substring(match.getBegin(),match.getEnd()))+"</contents>");
-			dumpMatches(text,match.subMatches,out);
-		} finally {
-			out.indent--;
-			out.println("</"+match.patternName+">");
-		}
-	}
-	private static String xmltext(String str) {
-		StringBuffer sb = new StringBuffer();
-		for(int i=0;i<str.length();i++) {
-			char c = str.charAt(i);
-			if(c == '<')
-				sb.append("&lt;");
-			else if(c == '>')
-				sb.append("&gt;");
-			else if(c == '&')
-				sb.append("&amp;");
-			else if(c == '"')
-				sb.append("&quot;");
-			else if(c <= 13 || c > 127) 
-				sb.append("&#"+(int)c+";");
-			else
-				sb.append(c);
-		}
-		return sb.toString();
-	}
-	static void dumpMatches(String text, Group match) {
-		dumpMatches(text,match,DebugOutput.out);
 	}
 	
 	public static class Near {

@@ -38,29 +38,15 @@ public class DebugOutput {
 				newline=false;
 			}
 			String s = o.toString();
-			for(int i=0;i<s.length();i++) {
-				char c = s.charAt(i);
-				/*
-				if(c == '\n')
-					pw.print("\\n");
-				else if(c == '\r')
-					pw.print("\\r");
-				else if(c == '\t')
-					pw.print("\\t");
-				else if(c == '\b')
-					pw.print("\\b");
-				else if(c < 10 || c >= 128) {
-					String hex = Integer.toHexString(c);
-					while(hex.length() < 4)
-						hex = "0"+hex;
-					pw.printf("\\u"+hex);
-				} else
-					pw.print(c);
-					*/
-				pw.print(outc(c));
-			}
+			outs(s);
 		}
 		pw.flush();
+	}
+	public void outs(String s) {
+		for(int i=0;i<s.length();i++) {
+			char c = s.charAt(i);
+			pw.print(outc(c));
+		}
 	}
 	public void println(Object o) {
 		print(o);
@@ -72,4 +58,7 @@ public class DebugOutput {
 		newline = true;
 	}
 	public final static DebugOutput out = new DebugOutput();
+	public void flush() {
+		pw.flush();
+	}
 }

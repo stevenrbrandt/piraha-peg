@@ -6,8 +6,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -130,6 +133,42 @@ public class Grammar {
 			}
 		}
 		checked = true;
+	}
+	
+	public List<String> extras(String pat) {
+		List<String> extraPatterns = new ArrayList<String>();
+		final Map<String,Boolean> visited = new HashMap<String,Boolean>();
+		visited.put(pat,Boolean.FALSE);
+		Visitor extraFinder = new Visitor() {
+			public void finishVisit(Pattern p) {
+				if(p instanceof Lookup) {
+					String name = ((Lookup)p).lookup;
+					if(!visited.containsKey(name))
+						visited.put(name,Boolean.FALSE);
+				}
+			}
+		};
+		while(true) {
+			boolean done = true;
+			Set<String> set = new HashSet<String>();
+			for(String p : visited.keySet()) {
+				if(visited.get(p) == Boolean.FALSE)
+					set.add(p);
+			}
+			for(String p : set) {
+				//System.out.println("visit "+p+" "+set);
+				visited.put(p, Boolean.TRUE);
+				patterns.get(p).visit(extraFinder);
+				done = false;
+			}
+			if(done)
+				break;
+		}
+		for(String p : patterns.keySet()) {
+			if(!visited.containsKey(p))
+				extraPatterns.add(p);
+		}
+		return extraPatterns;
 	}
 
 	public Matcher matcher(String patternName, String text) {

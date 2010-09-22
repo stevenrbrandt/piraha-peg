@@ -34,7 +34,7 @@ public class Calc {
 		boolean b = m.matches();
 		System.out.println("match? "+b);
 		if(b) {
-			m.dumpMatches();
+			m.dumpMatchesXML();
 			System.out.println("node count="+count(m));
 			System.out.println("eval="+evalExpr(m));
 		}

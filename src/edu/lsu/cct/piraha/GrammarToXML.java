@@ -24,11 +24,8 @@ public class GrammarToXML {
 			if(!m.didMatch) {
 				throw new Exception("Syntax error near line: "+m.near());
 			}
-			out.println("<"+rule+">");
-			out.indent++;
-			Matcher.dumpMatches(m.text, m.subMatches, out);
-			out.indent--;
-			out.println("</"+rule+">");
+			m.dumpMatchesXML(out);
 		}
+		out.flush();
 	}
 }

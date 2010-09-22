@@ -41,7 +41,7 @@ public class Test {
 		DebugOutput.out.print("match "+text+" using "+pat+" => "+found+" ");
 		if(found) {
 			DebugOutput.out.print("["+m.getBegin()+","+m.getEnd()+"]");
-			m.dumpMatches();
+			m.dumpMatchesXML();
 		}
 		DebugOutput.out.println();
 		DebugOutput.out.println();
