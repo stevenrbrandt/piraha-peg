@@ -1,0 +1,191 @@
+# This is an until-end-of-line comment
+
+@THORN BSSN
+
+
+@DERIVATIVES
+  PDstandardNth[i_]    -> StandardCenteredDifferenceOperator[1,derivOrder/2,i],
+  PDstandardNth[i_,i_] -> StandardCenteredDifferenceOperator[2,derivOrder/2,i],
+  PDstandardNth[i_,j_] -> StandardCenteredDifferenceOperator[1,derivOrder/2,i]
+                          StandardCenteredDifferenceOperator[1,derivOrder/2,j],
+  PDdissipationNth[i_] ->
+    spacing[i]^(derivOrder+1) / 2^(derivOrder+2) *
+    StandardCenteredDifferenceOperator[derivOrder+2,derivOrder/2+1,i]
+@END_DERIVATIVES
+
+@JACOBIAN {PD, FD, J, dJ}
+
+
+
+@TENSORS
+normal, tangentA, tangentB, dir, xx, rr, th, ph, J,
+admalpha, admdtalpha, admbeta, admdtbeta, H, M,
+detg, trR, Km, trK, cdphi, 
+phi, Xt, Xtn, alpha, A, beta, B, Atm, trA, trAts,
+dottrK, dotXt, cXt, cS, cA,
+e4phi, em4phi, ddetg, detgt, ddetgt, dgtu, Gtl, Gtlu, Gt,
+gK, T00, T0, rho, S, x, y, z, r, epsdiss,
+
+admg[la,lb], admK[la,lb],
+g[la,lb], K[la,lb], R[la,lb], cdphi2[la,lb],
+gt[la,lb], At[la,lb], Ats[la,lb], Rt[la,lb], Rphi[la,lb], T[la,lb],
+
+{dJ[ua,lb,lc], lb, lc},
+{G[ua,lb,lc], lb, lc},
+{Gtl[la,lb,lc], lb, lc},
+{Gt[ua,lb,lc], lb, lc},
+{gK[la,lb,lc], la, lb},
+
+gu[ua,ub], gtu[ua,ub], Atu[ua,ub],
+{dgtu[ua,ub,lc], {ua, ub}},
+{ddgtu[ua,ub,lc,ld], {ua, ub}, {lc, ld}},
+@END_TENSORS
+
+
+
+@CONNECTION {CD, PD, G}
+@CONNECTION {CDt, PD, Gt}
+
+@GROUPS
+phi      -> "log_confac",
+gt[la,lb]-> "metric",
+Xt[ua   ]-> "Gamma",
+@END_GROUPS
+
+@EXTRA_GROUPS
+"Grid::coordinates" -> {x, y, z, r},
+"ADMBase::metric"   -> {gxx, gxy, gxz, gyy, gyz, gzz},
+"ADMBase::curv"     -> {kxx, kxy, kxz, kyy, kyz, kzz},
+@END_EXTRA_GROUPS
+
+@DEFINE pi = N[Pi,40]
+
+@DEFINE
+  detgExpr  = Det [MatrixOfComponents [g [la,lb]]]
+@DEFINE
+  ddetgExpr[la_] =
+    Sum [D[Det[MatrixOfComponents[g[la, lb]]], X] PD[X, la],
+         {X, Union[Flatten[MatrixOfComponents[g[la, lb]]]]}]
+
+@DEFINE
+  detgtExpr = Det [MatrixOfComponents [gt[la,lb]]]
+@DEFINE
+  ddetgtExpr[la_] =
+    Sum [D[Det[MatrixOfComponents[gt[la, lb]]], X] PD[X, la],
+         {X, Union[Flatten[MatrixOfComponents[gt[la, lb]]]]}]
+
+
+
+@CALCULATIONS
+
+@CALCULATION "Minkowski"
+  @Schedule {"IN ADMBase_InitialData"}
+  @ConditionalOnKeyword {"my_initial_data", "Minkowski"}
+  @EQUATIONS
+    phi       -> IfThen[conformalMethod, 1, 0],
+    phi       -> IfThen[conformalMethod, 1, 0],
+    gt[la,lb] -> KD[la,lb],
+    trK       -> 0,
+    At[la,lb] -> 0,
+    Xt[ua]    -> 0,
+    alpha     -> 1,
+    A         -> 0,
+    beta[ua]  -> 0,
+    B[ua]     -> 0
+  @END_EQUATIONS
+@END_CALCULATION
+
+
+
+@CALCULATION "convertFromADMBase"
+  @Schedule {"AT initial AFTER ADMBase_PostInitial"}
+  @ConditionalOnKeyword {"my_initial_data", "ADMBase"}
+  @Shorthands g[la,lb], detg, gu[ua,ub], em4phi
+  @EQUATIONS
+    g[la,lb]  -> admg[la,lb],
+    detg      -> detgExpr,
+    gu[ua,ub] -> 1/detg detgExpr MatrixInverse [g[ua,ub]],
+    
+    phi       -> IfThen [conformalMethod, detg^(-1/6), Log[detg]/12],
+    em4phi    -> IfThen [conformalMethod, phi^2, Exp[-4 phi]],
+    gt[la,lb] -> em4phi g[la,lb],
+    
+    trK       -> gu[ua,ub] admK[la,lb],
+    At[la,lb] -> em4phi (admK[la,lb] - (1/3) g[la,lb] trK),
+    
+    alpha     -> admalpha,
+    
+    beta[ua]  -> admbeta[ua],
+  @END_EQUATIONS
+@END_CALCULATION
+
+
+
+@CALCULATION "convertFromADMBaseGammaCalc"
+  @Schedule {"AT initial AFTER " <> BSSN <> "_convertFromADMBase"}
+  @ConditionalOnKeyword {"my_initial_data", "ADMBase"}
+  # Do not synchronise right after this routine; instead, synchronise
+  # after extrapolating
+  @Where Interior
+  # Synchronise after this routine, so that the refinement boundaries
+  # are set correctly before extrapolating.  (We will need to
+  # synchronise again after extrapolating because extrapolation does
+  # not fill ghost zones, but this is irrelevant here.)
+  @Shorthands dir[ua]
+  @Shorthands detgt, gtu[ua,ub], Gt[ua,lb,lc], theta
+  @EQUATIONS
+    dir[ua] -> Sign[beta[ua]],
+    
+    detgt        -> 1, (* detgtExpr *)
+    gtu[ua,ub]   -> 1/detgt detgtExpr MatrixInverse [gt[ua,ub]],
+    Gt[ua,lb,lc] -> 1/2 gtu[ua,ud]*
+                    (PD[gt[lb,ld],lc] + PD[gt[lc,ld],lb] - PD[gt[lb,lc],ld]),
+    Xt[ua] -> gtu[ub,uc] Gt[ua,lb,lc],
+    
+    # If LapseACoeff=0, then A is not evolved, in the sense that it
+    # does not influence the time evolution of other variables.
+    A -> IfThen [LapseACoeff != 0,
+                 1 / (- harmonicF alpha^harmonicN)
+                 (+ admdtalpha
+                  - LapseAdvectionCoeff beta[ua] PDua[alpha,la]
+                  - LapseAdvectionCoeff Abs[beta[ua]] PDus[alpha,la]),
+                 0],
+    
+    theta -> thetaExpr,
+    
+    # If ShiftBCoeff=0 or theta ShiftGammaCoeff=0, then B^i is not
+    # evolved, in the sense that it does not influence the time
+    # evolution of other variables.
+    B[ua] -> IfThen [ShiftGammaCoeff ShiftBCoeff != 0,
+                     1 / (theta ShiftGammaCoeff),
+                     (+ admdtbeta[ua]
+                      - ShiftAdvectionCoeff beta[ub] PDua[beta[ua],lb]
+                      - ShiftAdvectionCoeff Abs[beta[ub]] PDus[beta[ua],lb]),
+                     0] 
+  @END_EQUATIONS
+@END_CALCULATION
+
+@END_CALCULATIONS
+
+
+@INHERITED_IMPLEMENTATION ADMBase, TmunuBase
+
+
+
+@KEYWORD_PARAMETER "my_initial_data"
+  # @Visibility "restricted"
+  # @Description "ddd"
+  @AllowedValues {"ADMBase", "Minkowski"}
+  @Default "ADMBase"
+@END_KEYWORD_PARAMETER
+
+
+
+@REAL_PARAMETER "LapseACoeff"
+  @Description "Whether to evolve A in time"
+  @Default 0
+@END_REAL_PARAMETER
+
+
+
+@END_THORN
