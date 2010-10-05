@@ -103,11 +103,11 @@ public class Test {
 		
 		// Check name matches
 		g = new Grammar();
-		g.compile("n", "[^<>]+");
-		g.compile("t", "<{n}>(;<{n}>)*(,<{$n}>)*");
+		g.compile("name", "[a-zA-Z_][a-zA-Z0-9_]*");
+		g.compile("block", "\\{ *((decl +{name} *;|use +{$name} *;|{block}) *)*\\}");
 		g.diag(DebugOutput.out);
-		m = g.matcher("t", "<a>;<bc>;<def>,<bc>,<bc>,<b>");
-		assert(m.matches() && m.substring().equals("<a>;<bc>;<def>,<bc>,<bc>"));
+		m = g.matcher("block", "{decl b;{ decl a; use a;} {{use a;}}}");
+		assert(m.matches());
 		
 		Grammar xml = new Grammar();
 		xml.compileFile(Test.class.getResourceAsStream("xml.peg"));
