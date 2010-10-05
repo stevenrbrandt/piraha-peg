@@ -69,6 +69,7 @@ public class Group implements Cloneable {
 		return near;
 	}
 	public String substring() {
+		if(begin < 0 || end < 0) return "";
 		return text.substring(begin,end);
 	}
 	public String getPatternName() {
