@@ -12,9 +12,7 @@ public class NegLookAhead extends Pattern {
 	public boolean match(Matcher m) {
 		int pos = m.getTextPos();
 		boolean b = !Matcher.matchAll(pattern, m);
-		if(b) {
-			m.setTextPos(pos);
-		}
+		m.setTextPos(pos);
 		return b;
 	}
 	
