@@ -7,6 +7,7 @@ public class Lookup extends Pattern {
 	final String lookup;
 	final String grammarName;
 	final boolean capture;
+	final boolean notonce;
 	Pattern pattern = null;
 	Grammar grammar = null;
 	final String fullName;
@@ -16,8 +17,14 @@ public class Lookup extends Pattern {
 		if(lookup.startsWith("-")) {
 			lookup = lookup.substring(1);
 			capture = false;
+			notonce = false;
+		} else if(lookup.startsWith("@")) {
+			lookup = lookup.substring(1);
+			capture = true;
+			notonce = true;
 		} else {
 			capture = true;
+			notonce = false;
 		}
 		this.fullName = lookup;
 		int n = lookup.indexOf(':');
@@ -53,19 +60,25 @@ public class Lookup extends Pattern {
 		if (capture) {
 			m.savedMatches.push(m.subMatches);
 			m.subMatches = new LinkedList<Group>();
-			String lookupSave = m.lookup;
+			//String lookupSave = m.lookup;
+			m.lookStack.push(lookup);
 			try {
 				int before = m.getTextPos();
 				m.lookup = fullName;
 				boolean b = Matcher.matchAll(pattern, m);
 				if (b) {
 					int after = m.getTextPos();
-					m.savedMatches.peek().add(new Group(fullName, before, after, m.subMatches,m.text));
+					if(notonce && m.subMatches.size()==1) {
+						m.savedMatches.peek().add(m.subMatches.get(0));
+					} else {
+						m.savedMatches.peek().add(new Group(fullName, before, after, m.subMatches,m.text));
+					}
 				}
 				return b;
 			} finally {
 				m.subMatches = m.savedMatches.pop();
-				m.lookup = lookupSave;
+				//m.lookup = lookupSave;
+				m.lookStack.pop();
 			}
 		} else {
 			return Matcher.matchAll(pattern,m);

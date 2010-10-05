@@ -12,6 +12,7 @@ public class Matcher extends Group {
 	Pattern pattern;
 	public String lookup, maxLookup;
 	public boolean didMatch;
+	Stack<String> lookStack = new Stack<String>();
 	
 	public boolean find() {
 		if(end == 0)
@@ -37,7 +38,7 @@ public class Matcher extends Group {
 	final public void setTextPos(int newTextPos) {
 		if(newTextPos > maxTextPos) {
 			maxTextPos = newTextPos;
-			maxLookup = lookup;
+			maxLookup = lookStack.toString();
 		}
 		textPos = newTextPos;
 	}
