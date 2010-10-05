@@ -199,4 +199,30 @@ public class Grammar {
 		m.matches();
 		return m;
 	}
+
+	public void addOps(String name, String finalExprPeg, String whitePeg, String[][] ops) {
+		String prev_name = name;
+		for(int i=0;i<ops.length;i++) {
+			String op_name = ops[i][0];
+			String op_pat = ops[i][1];
+			String pat_name = op_name+"_expr";
+			String pat_op_name = op_name+"_op";
+			String pat_expr = "{@"+pat_name+"}("+whitePeg+"{"+pat_op_name+"}"+whitePeg+"{@"+pat_name+"})*";
+			compile(prev_name,pat_expr);
+			compile(pat_op_name,op_pat);
+			prev_name = pat_name;
+		}
+		compile(prev_name,finalExprPeg);
+	}
+	
+	public String asPEG() {
+		StringBuilder sb = new StringBuilder();
+		for(String p : patterns.keySet()) {
+			sb.append(p);
+			sb.append(" = ");
+			sb.append(patterns.get(p).decompile());
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
 }
