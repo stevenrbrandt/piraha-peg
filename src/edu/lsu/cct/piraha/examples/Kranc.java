@@ -64,8 +64,8 @@ public class Kranc {
 		g.compile("rpar","REAL_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
 		//g.diag(DebugOutput.out);
 	}
-	public void doFile(String file) throws IOException {
-		File f = new File(file);
+	public void doFile(String inputfile, String outputfile) throws IOException {
+		File f = new File(inputfile);
 		String c = Grammar.readContents(f);
 		Matcher m = g.matcher("kranc",c);
 		boolean b = m.matches();
@@ -74,7 +74,7 @@ public class Kranc {
 		System.out.println(b);
 		if(!b)
 			System.err.println(m.near().toString());
-		formatOutput("/home/sbrandt/McL.m",m);
+		formatOutput(outputfile,m);
 	}
 	public void formatOutput(String file,Group g) throws IOException {
 		FileWriter fw = new FileWriter(file);
@@ -247,7 +247,7 @@ public class Kranc {
 				pw.print(g.group(i).group(1).substring());
 			}
 			pw.println();
-			pw.println("  };");
+			pw.println("  },");
 		} else if("inher".equals(m)) {
 			g.dumpMatches();
 			pw.print("inheritedImplementations = {");
@@ -274,8 +274,10 @@ public class Kranc {
 		tensors.add(name);
 	}
 	public static void main(String[] args) throws IOException {
+		String inputfile = args[0];
+		String outputfile = inputfile.replaceFirst("\\.kranc$", ".m");
 		Kranc k = new Kranc();
-		k.doFile("/home/sbrandt/McLachlan_BSSN.kranc");
+		k.doFile(inputfile, outputfile);
 	}
 	Group trim(Group g) {
 		if(g.groupCount()==1) {
