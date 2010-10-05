@@ -132,27 +132,12 @@ public class IfParse {
 	public static void buildGrammar(Grammar g) {
 		g.compile("isdefined","defined( +{word}| *\\( *{word} *\\))");
 		g.compile("not","! *{if_expr}");
-		addOps(g,"if_expr","{num}|{isdefined}|{word}|\\({-if_expr}\\)|{not}",
+		g.addOps("if_expr","{num}|{isdefined}|{word}|\\({-if_expr}\\)|{not}"," *",
 				new String[][]{
 					new String[]{"bool","\\|\\||\\&\\&"},
 					new String[]{"comp","<=|>=|==|!=|>|<"},
 					new String[]{"add","\\+|\\-"},
 					new String[]{"mul","\\*|/"},
 					});
-	}
-
-	private static void addOps(Grammar g, String name, String peg, String[][] ops) {
-		String prev_name = name;
-		for(int i=0;i<ops.length;i++) {
-			String op_name = ops[i][0];
-			String op_pat = ops[i][1];
-			String pat_name = op_name+"_expr";
-			String pat_op_name = op_name+"_op";
-			String pat_expr = " *{"+pat_name+"}( *{"+pat_op_name+"} *{"+pat_name+"})*";
-			g.compile(prev_name,pat_expr);
-			g.compile(pat_op_name,op_pat);
-			prev_name = pat_name;
-		}
-		g.compile(prev_name,peg);
 	}
 }

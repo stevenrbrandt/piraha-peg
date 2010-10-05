@@ -115,7 +115,7 @@ public class Cpp {
 		if(mflag)
 			System.out.println();
 	}
-	public void doFile_(String file) throws IOException {
+	void doFile_(String file) throws IOException {
 		File f = findFile(file);
 		if(mflag && !mfiles.contains(f.getAbsolutePath())) {
 			if(mfiles.size()==0) {
@@ -477,13 +477,20 @@ public class Cpp {
 				}
 			}
 			
-			for(String file : files)
+			for(String file : files) {
+				cpp.clearMfiles();
 				cpp.doFile(file);
+			}
 			
 		} finally {
 			cpp.finish();
 		}
 	}
+	
+	public void clearMfiles() {
+		if(mflag) mfiles = new HashSet<String>();
+	}
+
 	public void setDef(String key,String val) {
 		setDef(key,Group.make("word",val));
 	}
