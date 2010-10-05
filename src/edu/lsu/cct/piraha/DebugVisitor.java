@@ -48,6 +48,8 @@ public class DebugVisitor extends Visitor {
 				out.print(m.min+" to "+m.max);
 		} else if(p instanceof Lookup) {
 			out.print(((Lookup)p).lookup);
+		} else if(p instanceof Bracket) {
+			out.print("neg="+((Bracket)p).neg);
 		}
 		out.println();
 		return this;
