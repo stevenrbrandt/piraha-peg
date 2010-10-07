@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import edu.lsu.cct.piraha.DebugVisitor;
@@ -17,8 +19,12 @@ import edu.lsu.cct.piraha.Matcher;
 public class Kranc {
 	Grammar g = new Grammar();
 	DebugVisitor dv = new DebugVisitor();
-	private int calcNumber;
+	//private int calcNumber;
 	private String thornName;
+	private List<Group> kpars = new ArrayList<Group>();
+	private List<Group> rpars = new ArrayList<Group>();
+	private List<Group> ipars = new ArrayList<Group>();
+	private List<Group> calcs = new ArrayList<Group>();
 	public Kranc() {
 		g.compile("w0","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))*");
 		g.compile("w1","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))+");
@@ -32,8 +38,9 @@ public class Kranc {
 		g.compile("def","DEFINE{-w1}({fun}|{name}){-w0}={-w0}{expr}");
 		g.compile("num","[0-9]+");
 		g.compile("term","{fun}|{name}|{num}|{list}|{dquote}|\\({-w0}{@expr}\\)|[+-][ \t]*{-term}");
+		g.compile("end_thorn","@END_THORN");
 		g.compile("kranc", "{thorn}*({-w0}@({deriv}|{jac}|{tens}|{sym}|{conn}|{group}|{extra}|"+
-				"{def}|{calcs}|{inher}|{kpar}|{rpar}))*{-w0}@END_THORN{-w0}$");
+				"{def}|{calc}|{inher}|{kpar}|{rpar}|{ipar}))*{-w0}{end_thorn}{-w0}$");
 		g.addOps("expr", "{-term}", "{-w0}", new String[][]{
 				new String[]{"comp","<=|>=|==|!=|<|>"},
 				new String[]{"add","([+-]|<>)"},
@@ -53,7 +60,6 @@ public class Kranc {
 		g.compile("list","\\{({@expr}({-w0},{-w0}{@expr})*|){-w0}\\}");
 		g.compile("eqn","({fun}|{name}){-w0}->{-w0}{expr}");
 		g.compile("eqns","@EQUATIONS{-w1}{eqn}({-w0},{-w0}{eqn})*{-w0}(,{-w0}|)@END_EQUATIONS");
-		g.compile("calcs","CALCULATIONS{-w0}(@{calc}{-w0})*@END_CALCULATIONS");
 		g.compile("calc_par","@{name}{-w1}{expr}({-w0},{-w0}{expr})*");
 		g.compile("calc","CALCULATION{-w0}{dquote}{-w0}"+
 				"({eqns}{-w0}|{calc_par}{-w0})*"+
@@ -62,6 +68,7 @@ public class Kranc {
 		
 		g.compile("kpar","KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_KEYWORD_PARAMETER");
 		g.compile("rpar","REAL_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
+		g.compile("ipar","INTEGER_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INTEGER_PARAMETER");
 		//g.diag(DebugOutput.out);
 	}
 	public void doFile(String inputfile, String outputfile) throws IOException {
@@ -199,7 +206,7 @@ public class Kranc {
 			pw.print("=");
 			pw.print(g.group(1).substring());
 			pw.println(";");
-		} else if("calcs".equals(m)) {
+		/*} else if("calcs".equals(m)) {
 			for(int i=0;i<g.groupCount();i++) {
 				calcNumber = i;
 				formatOutput(pw, g.group(i));
@@ -210,9 +217,9 @@ public class Kranc {
 				pw.print("calc");
 				pw.print(i);
 			}
-			pw.println("};");
+			pw.println("};");*/
 		} else if("calc".equals(m)) {
-			pw.print("calc");
+			/*pw.print("calc");
 			pw.print(calcNumber);
 			pw.println(" =");
 			pw.println("{");
@@ -235,7 +242,8 @@ public class Kranc {
 			pw.print("_\" <> ");
 			pw.print(g.group(0).substring());
 			pw.println();
-			pw.println("};");
+			pw.println("};");*/
+			calcs.add(g);
 		} else if("eqns".equals(m)) {
 			pw.println("  Equations ->");
 			for(int i=0;i<g.groupCount();i++) {
@@ -249,7 +257,6 @@ public class Kranc {
 			pw.println();
 			pw.println("  },");
 		} else if("inher".equals(m)) {
-			g.dumpMatches();
 			pw.print("inheritedImplementations = {");
 			for(int i=0;i<g.groupCount();i++) {
 				if(i > 0) pw.print(", ");
@@ -258,6 +265,124 @@ public class Kranc {
 				pw.print('"');
 			}
 			pw.println("};");
+		} else if("kpar".equals(m)) {
+			kpars .add(g);
+		} else if("rpar".equals(m)) {
+			rpars .add(g);
+		} else if("end_thorn".equals(m)) {
+			for(int calcNum=0;calcNum < calcs.size();calcNum++) {
+				Group calc = calcs.get(calcNum);
+				calcNum++;pw.print("calc");
+				pw.print(calcNum);
+				pw.println(" =");
+				pw.println("{");
+				for(int i=1;i<calc.groupCount();i++) {
+					String mm = calc.group(i).getPatternName();
+					if("calc_par".equals(mm)) {
+						pw.print("  ");
+						pw.print(calc.group(i).group(0).substring());
+						pw.print(" -> ");
+						pw.print(calc.group(i).group(1).substring());
+						pw.println(",");
+					} else if("eqns".equals(mm)) {
+						formatOutput(pw, calc.group(i));
+					} else {
+						throw new Error("bad calc near "+calc.group(i).near());
+					}
+				}
+				pw.print("  Name -> \"");
+				pw.print(thornName);
+				pw.print("_\" <> ");
+				pw.print(calc.group(0).substring());
+				pw.println();
+				pw.println("};");
+			}
+			pw.print("calculations = {");
+			for(int i=0;i<calcs.size();i++) {
+				if(i > 0) pw.print(", ");
+				pw.print("calc");
+				pw.print(i);
+			}
+			pw.println("};");
+			calcs = new ArrayList<Group>();
+			
+			pw.println("keywordParameters = {");
+			for(int knum = 0;knum < kpars.size();knum++) {
+				Group kpar = kpars.get(knum);
+				pw.println("  {");
+				for(int i=1;i+1<kpar.groupCount();i+=2) {
+					pw.print("    ");
+					pw.print(kpar.group(i).substring());
+					pw.print(" -> ");
+					pw.print(kpar.group(i+1).substring());
+					pw.println(",");
+				}
+				pw.print("    Name -> ");
+				pw.println(kpar.group(0).substring());
+				if(knum+1 == kpars.size())
+					pw.println("  }");
+				else
+					pw.println("  },");
+			}
+			pw.println("}");
+			kpars = new ArrayList<Group>();
+			
+			pw.println("realParameters = {");
+			for(int rnum = 0;rnum < rpars.size();rnum++) {
+				Group rpar = rpars.get(rnum);
+				pw.println("  {");
+				for(int i=1;i+1<rpar.groupCount();i+=2) {
+					pw.print("    ");
+					pw.print(rpar.group(i).substring());
+					pw.print(" -> ");
+					pw.print(rpar.group(i+1).substring());
+					pw.println(",");
+				}
+				pw.print("    Name -> ");
+				pw.println(rpar.group(0).substring());
+				if(rnum+1 == rpars.size())
+					pw.println("  }");
+				else
+					pw.println("  }");
+			}
+			pw.println("}");
+			rpars = new ArrayList<Group>();
+			
+			pw.println("integerParameters = {");
+			for(int inum = 0;inum < ipars.size();inum++) {
+				Group ipar = ipars.get(inum);
+				pw.println("  {");
+				for(int i=1;i+1<ipar.groupCount();i+=2) {
+					pw.print("    ");
+					pw.print(ipar.group(i).substring());
+					pw.print(" -> ");
+					pw.print(ipar.group(i+1).substring());
+					pw.println(",");
+				}
+				pw.print("    Name -> ");
+				pw.println(ipar.group(0).substring());
+				if(inum+1 == ipars.size())
+					pw.println("  }");
+				else
+					pw.println("  }");
+			}
+			pw.println("}");
+			ipars = new ArrayList<Group>();
+
+			pw.println("CreateKrancThornTT[allGroups,\".\",\""+thornName+"\",");
+			pw.println("  Caculations -> calculations,");
+			pw.println("  DeclaredGroups -> declaredGroupNames,");
+			pw.println("  PartialDerivatives -> derivatives,");
+			pw.println("  EvolutionTimelevels -> evolutionTimelevels,");
+			pw.println("  DefaultEvolutionTimelevels -> 3,"); 
+			pw.println("  UseLoopControl -> True,");
+			pw.println("  InheritedImplementations -> inheritedImplementations");
+			pw.println("  InheritedKeywordParameters -> inheritedKeywordParameters,");
+			pw.println("  ExtendedKeywordParameters -> extendedKeywordParameters,");
+			pw.println("  KeywordParameters -> keywordParameters,");
+			pw.println("  IntParameters -> intParameters,");
+			pw.println("  RealParameters -> realParameters");
+			pw.println("]");
 		} else {
 			pw.flush();
 			throw new Error(m+": "+g.near());
@@ -274,10 +399,13 @@ public class Kranc {
 		tensors.add(name);
 	}
 	public static void main(String[] args) throws IOException {
-		String inputfile = args[0];
-		String outputfile = inputfile.replaceFirst("\\.kranc$", ".m");
 		Kranc k = new Kranc();
-		k.doFile(inputfile, outputfile);
+		for(String inputfile : args) {
+			String outputfile = inputfile.replaceFirst("\\.kranc$", ".m");
+			System.out.println(inputfile);
+			System.out.println("  --> "+outputfile);
+			k.doFile(inputfile, outputfile);
+		}
 	}
 	Group trim(Group g) {
 		if(g.groupCount()==1) {
