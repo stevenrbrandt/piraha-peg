@@ -21,10 +21,13 @@ public class Kranc {
 	DebugVisitor dv = new DebugVisitor();
 	//private int calcNumber;
 	private String thornName;
-	private List<Group> kpars = new ArrayList<Group>();
-	private List<Group> rpars = new ArrayList<Group>();
-	private List<Group> ipars = new ArrayList<Group>();
-	private List<Group> calcs = new ArrayList<Group>();
+	private List<Group> inhers = new ArrayList<Group>();
+	private List<Group> ikpars = new ArrayList<Group>();
+	private List<Group> ekpars = new ArrayList<Group>();
+	private List<Group> kpars  = new ArrayList<Group>();
+	private List<Group> rpars  = new ArrayList<Group>();
+	private List<Group> ipars  = new ArrayList<Group>();
+	private List<Group> calcs  = new ArrayList<Group>();
 	public Kranc() {
 		g.compile("w0","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))*");
 		g.compile("w1","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))+");
@@ -66,9 +69,11 @@ public class Kranc {
 				"@END_CALCULATION");
 		g.compile("inher","INHERITED_IMPLEMENTATION{-w1}{name}({-w0},{-w0}{name})*");
 		
+		g.compile("ikpar","INHERITED_KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INHERITED_KEYWORD_PARAMETER");
+		g.compile("ekpar","EXTENDED_KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_EXTENDED_KEYWORD_PARAMETER");
 		g.compile("kpar","KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_KEYWORD_PARAMETER");
 		g.compile("rpar","REAL_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
-		g.compile("ipar","INTEGER_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INTEGER_PARAMETER");
+		g.compile("ipar","INT_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INT_PARAMETER");
 		//g.diag(DebugOutput.out);
 	}
 	public void doFile(String inputfile, String outputfile) throws IOException {
@@ -89,13 +94,11 @@ public class Kranc {
 		PrintWriter pw = new PrintWriter(bw);
 		pw.println("$Path = Join[$Path, {\"../../../repos/Kranc/Tools/CodeGen\",");
 		pw.println("                     \"../../../repos/Kranc/Tools/MathematicaMisc\"}];");
-		pw.println();
 		pw.println("Get[\"KrancThorn`\"];");
-		pw.println();
-		pw.println();
 		pw.println("SetEnhancedTimes[False];");
 		pw.println("SetSourceLanguage[\"C\"];");
 		pw.println();
+		pw.println("evolutionTimelevels = 3;");
 		formatOutput(pw,g);
 		pw.flush();
 	}
@@ -107,12 +110,12 @@ public class Kranc {
 		} else if("thorn".equals(m)) {
 			thornName = g.group(0).substring();
 		} else if("deriv".equals(m)) {
+                        pw.println();
 			pw.print("partialDerivatives = {");
 			for(int i=0;i<g.groupCount();i++) {
-				if(i > 0)
-					pw.println(", ");
-				else
-					pw.println();
+				if(i==0) pw.println();
+				else pw.println(",");
+				pw.print("  ");
 				pw.print(g.group(i).substring());
 			}
 			pw.println();
@@ -174,20 +177,23 @@ public class Kranc {
 			}
 			pw.println("];");
 		} else if("group".equals(m)) {
+                        pw.println();
 			pw.print("declaredGroups = {");
 			for(int i=0;i+1<g.groupCount();i+=2) {
 				if(i==0) pw.println();
 				else pw.println(",");
-				pw.print("  SetGroupName[");
+				pw.print("  SetGroupName[CreateGroupFromTensor[");
 				pw.print(g.group(i).substring());
-				pw.print(", ");
+				pw.print("], ");
 				pw.print(g.group(i+1).substring());
 				pw.print("]");
 			}
 			pw.println();
 			pw.println("};");
 			pw.println("declaredGroupNames = Map[First, declaredGroups];");
+                        pw.println("allGroups = declaredGroups;");
 		} else if("extra".equals(m)) {
+                        pw.println();
 			pw.print("extraGroups = {");
 			for(int i=0;i+1<g.groupCount();i+=2) {
 				if(i==0) pw.println();
@@ -202,8 +208,9 @@ public class Kranc {
 			pw.println("};");
 			pw.println("allGroups = Join[declaredGroups, extraGroups];");
 		} else if("def".equals(m)) {
+                        pw.println();
 			pw.print(g.group(0).substring());
-			pw.print("=");
+			pw.print(" = ");
 			pw.print(g.group(1).substring());
 			pw.println(";");
 		/*} else if("calcs".equals(m)) {
@@ -245,10 +252,9 @@ public class Kranc {
 			pw.println("};");*/
 			calcs.add(g);
 		} else if("eqns".equals(m)) {
-			pw.println("  Equations ->");
+			pw.println("  Equations -> {");
 			for(int i=0;i<g.groupCount();i++) {
-				if(i==0) pw.println("  {");
-				else pw.println(",");
+				if(i>0) pw.println(",");
 				pw.print("    ");
 				pw.print(g.group(i).group(0).substring());
 				pw.print(" -> ");
@@ -257,14 +263,11 @@ public class Kranc {
 			pw.println();
 			pw.println("  },");
 		} else if("inher".equals(m)) {
-			pw.print("inheritedImplementations = {");
-			for(int i=0;i<g.groupCount();i++) {
-				if(i > 0) pw.print(", ");
-				pw.print('"');
-				pw.print(g.group(i).substring());
-				pw.print('"');
-			}
-			pw.println("};");
+                        inhers.add(g);
+		} else if("ikpar".equals(m)) {
+			ikpars.add(g);
+		} else if("ekpar".equals(m)) {
+			ekpars.add(g);
 		} else if("kpar".equals(m)) {
 			kpars .add(g);
 		} else if("rpar".equals(m)) {
@@ -272,10 +275,10 @@ public class Kranc {
 		} else if("end_thorn".equals(m)) {
 			for(int calcNum=0;calcNum < calcs.size();calcNum++) {
 				Group calc = calcs.get(calcNum);
-				calcNum++;pw.print("calc");
+                                pw.println();
+				pw.print("calc");
 				pw.print(calcNum);
-				pw.println(" =");
-				pw.println("{");
+				pw.println(" = {");
 				for(int i=1;i<calc.groupCount();i++) {
 					String mm = calc.group(i).getPatternName();
 					if("calc_par".equals(mm)) {
@@ -293,10 +296,10 @@ public class Kranc {
 				pw.print("  Name -> \"");
 				pw.print(thornName);
 				pw.print("_\" <> ");
-				pw.print(calc.group(0).substring());
-				pw.println();
+				pw.println(calc.group(0).substring());
 				pw.println("};");
 			}
+                        pw.println();
 			pw.print("calculations = {");
 			for(int i=0;i<calcs.size();i++) {
 				if(i > 0) pw.print(", ");
@@ -306,6 +309,63 @@ public class Kranc {
 			pw.println("};");
 			calcs = new ArrayList<Group>();
 			
+                        pw.println();
+			pw.print("inheritedImplementations = {");
+			for(int inum=0; inum<inhers.size();inum++) {
+                                Group inher = inhers.get(inum);
+				if(inum > 0) pw.print(", ");
+				pw.print('"');
+				pw.print(inher.substring());
+				pw.print('"');
+			}
+			pw.println("};");
+                        inhers = new ArrayList<Group>();
+                        
+                        pw.println();
+			pw.println("inheritedKeywordParameters = {");
+			for(int knum = 0;knum < ikpars.size();knum++) {
+				Group ikpar = ikpars.get(knum);
+				pw.println("  {");
+				for(int i=1;i+1<ikpar.groupCount();i+=2) {
+					pw.print("    ");
+					pw.print(ikpar.group(i).substring());
+					pw.print(" -> ");
+					pw.print(ikpar.group(i+1).substring());
+					pw.println(",");
+				}
+				pw.print("    Name -> ");
+				pw.println(ikpar.group(0).substring());
+				if(knum+1 == ikpars.size())
+					pw.println("  }");
+				else
+					pw.println("  },");
+			}
+			pw.println("};");
+			ikpars = new ArrayList<Group>();
+                        
+                        pw.println();
+			pw.println("extendedKeywordParameters = {");
+			for(int knum = 0;knum < ekpars.size();knum++) {
+				Group ekpar = ekpars.get(knum);
+				pw.println("  {");
+				for(int i=1;i+1<ekpar.groupCount();i+=2) {
+					pw.print("    ");
+					pw.print(ekpar.group(i).substring());
+					pw.print(" -> ");
+					pw.print(ekpar.group(i+1).substring());
+					pw.println(",");
+				}
+				pw.print("    Name -> ");
+				pw.println(ekpar.group(0).substring());
+				if(knum+1 == ekpars.size())
+					pw.println("  }");
+				else
+					pw.println("  },");
+			}
+			pw.println("};");
+			ekpars = new ArrayList<Group>();
+                        
+                        pw.println();
 			pw.println("keywordParameters = {");
 			for(int knum = 0;knum < kpars.size();knum++) {
 				Group kpar = kpars.get(knum);
@@ -324,9 +384,10 @@ public class Kranc {
 				else
 					pw.println("  },");
 			}
-			pw.println("}");
+			pw.println("};");
 			kpars = new ArrayList<Group>();
 			
+                        pw.println();
 			pw.println("realParameters = {");
 			for(int rnum = 0;rnum < rpars.size();rnum++) {
 				Group rpar = rpars.get(rnum);
@@ -345,10 +406,11 @@ public class Kranc {
 				else
 					pw.println("  }");
 			}
-			pw.println("}");
+			pw.println("};");
 			rpars = new ArrayList<Group>();
 			
-			pw.println("integerParameters = {");
+                        pw.println();
+			pw.println("intParameters = {");
 			for(int inum = 0;inum < ipars.size();inum++) {
 				Group ipar = ipars.get(inum);
 				pw.println("  {");
@@ -366,23 +428,24 @@ public class Kranc {
 				else
 					pw.println("  }");
 			}
-			pw.println("}");
+			pw.println("};");
 			ipars = new ArrayList<Group>();
 
-			pw.println("CreateKrancThornTT[allGroups,\".\",\""+thornName+"\",");
-			pw.println("  Caculations -> calculations,");
+                        pw.println();
+			pw.println("CreateKrancThornTT[allGroups, \".\", \""+thornName+"\",");
+			pw.println("  Calculations -> calculations,");
 			pw.println("  DeclaredGroups -> declaredGroupNames,");
-			pw.println("  PartialDerivatives -> derivatives,");
+			pw.println("  PartialDerivatives -> partialDerivatives,");
 			pw.println("  EvolutionTimelevels -> evolutionTimelevels,");
 			pw.println("  DefaultEvolutionTimelevels -> 3,"); 
 			pw.println("  UseLoopControl -> True,");
-			pw.println("  InheritedImplementations -> inheritedImplementations");
+			pw.println("  InheritedImplementations -> inheritedImplementations,");
 			pw.println("  InheritedKeywordParameters -> inheritedKeywordParameters,");
 			pw.println("  ExtendedKeywordParameters -> extendedKeywordParameters,");
 			pw.println("  KeywordParameters -> keywordParameters,");
 			pw.println("  IntParameters -> intParameters,");
 			pw.println("  RealParameters -> realParameters");
-			pw.println("]");
+			pw.println("];");
 		} else {
 			pw.flush();
 			throw new Error(m+": "+g.near());
@@ -390,6 +453,7 @@ public class Kranc {
 	}
 	private void declareTensor(PrintWriter pw, Group g, Set<String> tensors, String name) throws Error {
 		if(name == null) throw new NullPointerException(g.near().toString());
+		pw.println();
 		pw.print("DefineTensor[");
 		pw.print(name);
 		pw.println("];");
