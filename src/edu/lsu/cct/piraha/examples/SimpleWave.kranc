@@ -12,8 +12,8 @@
 @END_TENSORS
 
 @GROUPS
-  phi -> "phi",
-  pi -> "pi"
+  phi -> "phi_group",
+  pi -> "pi_group"
 @END_GROUPS
 
 @DEFINE PD = PDstandard2nd
