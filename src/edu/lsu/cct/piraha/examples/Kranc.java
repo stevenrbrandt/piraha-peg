@@ -66,7 +66,7 @@ public class Kranc {
 		g.compile("eqn","({fun}|{name}){-w0}->{-w0}{expr}");
 		g.compile("eqns","@EQUATIONS{-w1}{eqn}({-w0},{-w0}{eqn})*{-w0}(,{-w0}|)@END_EQUATIONS");
 		g.compile("calc_par","@{name}{-w1}{expr}({-w0},{-w0}{expr})*");
-		g.compile("calc","CALCULATION{-w0}{name}{-w0}"+
+		g.compile("calc","CALCULATION{-w1}{name}{-w0}"+
 				"({shorts}{-w0}|{eqns}{-w0}|{calc_par}{-w0})*"+
 				"@END_CALCULATION");
 		g.compile("inher","INHERITED_IMPLEMENTATION{-w1}{name}");
@@ -74,7 +74,9 @@ public class Kranc {
 		g.compile("ikpar","INHERITED_KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INHERITED_KEYWORD_PARAMETER");
 		g.compile("ekpar","EXTENDED_KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_EXTENDED_KEYWORD_PARAMETER");
 		g.compile("kpar","KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_KEYWORD_PARAMETER");
-		g.compile("ipar","INT_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INT_PARAMETER");
+                g.compile("allowed","{dquote}{-w0}->{-w0}{dquote}");
+		g.compile("alloweds","@ALLOWED_VALUES{-w0}({allowed}({-w0},{-w0}{allowed})*{-w0})*({-w0},{-w0})*@END_ALLOWED_VALUES");
+		g.compile("ipar","INT_PARAMETER{-w1}{name}{-w0}({alloweds}{-w0}|{calc_par}{-w0})*@END_INT_PARAMETER");
 		g.compile("rpar","REAL_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
 		//g.diag(DebugOutput.out);
 	}
@@ -288,6 +290,19 @@ public class Kranc {
                         ipars .add(g);
 		} else if("rpar".equals(m)) {
 			rpars .add(g);
+                } else if("alloweds".equals(m)) {
+			pw.println("    AllowedValues -> {");
+			for(int i=0;i<g.groupCount();i++) {
+				if(i>0) pw.println(",");
+				pw.print("      { Value -> ");
+				pw.print(g.group(i).group(0).substring());
+				pw.print(", Description -> ");
+				pw.print(g.group(i).group(1).substring());
+				pw.print(" }");
+			}
+			pw.println();
+			pw.println("    },");
+                    
 		} else if("end_thorn".equals(m)) {
 			for(int calcNum=0;calcNum < calcs.size();calcNum++) {
 				Group calc = calcs.get(calcNum);
@@ -431,12 +446,19 @@ public class Kranc {
 			for(int inum = 0;inum < ipars.size();inum++) {
 				Group ipar = ipars.get(inum);
 				pw.println("  {");
-				for(int i=1;i+1<ipar.groupCount();i+=2) {
-					pw.print("    ");
-					pw.print(ipar.group(i).substring());
-					pw.print(" -> ");
-					pw.print(ipar.group(i+1).substring());
-					pw.println(",");
+				for(int i=1;i<ipar.groupCount();i++) {
+                                        String mm = ipar.group(i).getPatternName();
+                                        if ("alloweds".equals(mm)) {
+                                                formatOutput(pw, ipar.group(i));
+                                        } else if ("calc_par".equals(mm)) {
+                                                pw.print("    ");
+                                                pw.print(ipar.group(i).group(0).substring());
+                                                pw.print(" -> ");
+                                                pw.print(ipar.group(i).group(1).substring());
+                                                pw.println(",");
+                                        } else {
+                                                throw new Error("intParameters");
+                                        }
 				}
 				pw.print("    Name -> ");
 				pw.println(ipar.group(0).substring());

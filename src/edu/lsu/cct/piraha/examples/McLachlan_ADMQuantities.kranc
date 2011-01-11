@@ -56,21 +56,21 @@
 @END_EXTRA_GROUPS
 
 # Use the CartGrid3D variable names
-@DEFINE x1=x
-@DEFINE x2=y
-@DEFINE x3=z
+@DEFINE x1 = x
+@DEFINE x2 = y
+@DEFINE x3 = z
 
 # Use the TmunuBase variable names
-@DEFINE T00=eTtt
-@DEFINE T01=eTtx
-@DEFINE T02=eTty
-@DEFINE T03=eTtz
-@DEFINE T11=eTxx
-@DEFINE T12=eTxy
-@DEFINE T22=eTyy
-@DEFINE T13=eTxz
-@DEFINE T23=eTyz
-@DEFINE T33=eTzz
+@DEFINE T00 = eTtt
+@DEFINE T01 = eTtx
+@DEFINE T02 = eTty
+@DEFINE T03 = eTtz
+@DEFINE T11 = eTxx
+@DEFINE T12 = eTxy
+@DEFINE T22 = eTyy
+@DEFINE T13 = eTxz
+@DEFINE T23 = eTyz
+@DEFINE T33 = eTzz
 
 
 
@@ -156,8 +156,10 @@
 
 @INT_PARAMETER conformalMethod
   @Description "Treatment of conformal factor"
-  #@AllowedValues {{Value -> 0, Description -> "phi method"},
-  #                {Value -> 1, Description -> "W method"}}
+  @ALLOWED_VALUES
+    "0" -> "phi method",
+    "1" -> "W method",
+  @END_ALLOWED_VALUES
   @Default 0
 @END_INT_PARAMETER
 
