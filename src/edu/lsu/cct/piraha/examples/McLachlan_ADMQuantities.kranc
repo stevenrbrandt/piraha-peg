@@ -1,0 +1,166 @@
+@THORN ML_ADMQuantities
+
+# Global settings
+
+@DEFINE derivOrder          = 4
+@DEFINE useGlobalDerivs     = False
+@DEFINE evolutionTimelevels = 3
+@DEFINE addMatter           = 1
+
+
+
+# Finite differencing operators
+
+@DERIVATIVES
+  # this list requires commas
+  PDstandardNth[i_]    -> StandardCenteredDifferenceOperator[1,derivOrder/2,i],
+  PDstandardNth[i_,i_] -> StandardCenteredDifferenceOperator[2,derivOrder/2,i],
+  PDstandardNth[i_,j_] -> StandardCenteredDifferenceOperator[1,derivOrder/2,i] *
+                          StandardCenteredDifferenceOperator[1,derivOrder/2,j],
+@END_DERIVATIVES
+
+@DEFINE PD = PDstandardNth
+
+
+
+# Tensors
+
+@TENSORS
+  x,
+  phi, {gt[la,lb],la,lb}, Xt, trK, {At[la,lb],la,lb}, alpha, beta,
+  T00, T0, {T[la,lb],la,lb},
+  detgt, {gtu[ua,ub],ua,ub}, {dgtu[ua,ub,lc],ua,ub},
+  {Gtl[la,lb,lc],lb,lc}, Gtlu, {Gt[ua,lb,lc],lb,lc},
+  Xtn, {Rt[la,lb],la,lb}, trRt, ephi, Atm,
+  rho, S,
+  Madm, Jadm
+@END_TENSORS
+
+@GROUPS
+  Madm     -> ML_Madm
+  Jadm[la] -> ML_Jadm
+@END_GROUPS
+
+@EXTRA_GROUPS
+  grid::coordinates               -> {x, y, z, r}
+  McLachlan::ML_log_confac        -> {phi}
+  McLachlan::ML_metric            -> {gt11, gt12, gt13, gt22, gt23, gt33}
+  McLachlan::ML_Gamma             -> {Xt1, Xt2, Xt3}
+  McLachlan::ML_trace_curv        -> {trK}
+  McLachlan::ML_curv              -> {At11, At12, At13, At22, At23, At33}
+  McLachlan::ML_lapse             -> {alpha}
+  McLachlan::ML_shift             -> {beta1, beta2, beta3}
+  TmunuBase::stress_energy_scalar -> {eTtt}
+  TmunuBase::stress_energy_vector -> {eTtx, eTty, eTtz}
+  TmunuBase::stress_energy_tensor -> {eTxx, eTxy, eTxz, eTyy, eTyz, eTzz}
+@END_EXTRA_GROUPS
+
+# Use the CartGrid3D variable names
+@DEFINE x1=x
+@DEFINE x2=y
+@DEFINE x3=z
+
+# Use the TmunuBase variable names
+@DEFINE T00=eTtt
+@DEFINE T01=eTtx
+@DEFINE T02=eTty
+@DEFINE T03=eTtz
+@DEFINE T11=eTxx
+@DEFINE T12=eTxy
+@DEFINE T22=eTyy
+@DEFINE T13=eTxz
+@DEFINE T23=eTyz
+@DEFINE T33=eTzz
+
+
+
+# Calculations
+
+@DEFINE pi = N[Pi,40]
+@DEFINE detgtExpr = Det [MatrixOfComponents [gt[la,lb]]]
+
+@CALCULATION ML_ADMQuantities
+  @Schedule Automatic
+  @Where    Interior
+  @SHORTHANDS
+    detgt, gtu[ua,ub], dgtu[ua,ub,lc],
+    Gtl[la,lb,lc], Gtlu[la,lb,uc], Gt[ua,lb,lc],
+    Xtn[ua], Rt[la,lb], trRt,
+    Atm[ua,lb],
+    ephi,
+    rho, S[la],
+  @END_SHORTHANDS
+  @EQUATIONS
+    # this list requires commas
+    detgt          -> 1 (* detgtExpr *),
+    gtu[ua,ub]     -> 1/detgt detgtExpr MatrixInverse [gt[ua,ub]],
+    dgtu[ua,ub,lc] -> - gtu[ua,ud] gtu[ub,ue] PD[gt[ld,le],lc],
+    Gtl[la,lb,lc]  -> 1/2
+                      (PD[gt[lb,la],lc] + PD[gt[lc,la],lb] - PD[gt[lb,lc],la]),
+    Gtlu[la,lb,uc] -> gtu[uc,ud] Gtl[la,lb,ld],
+    Gt[ua,lb,lc]   -> gtu[ua,ud] Gtl[ld,lb,lc],
+
+    (* The conformal connection functions calculated from the conformal metric,
+       used instead of Xt where no derivatives of Xt are taken *)
+    Xtn[ui] -> gtu[uj,uk] Gt[ui,lj,lk],
+
+    (* PRD 62, 044034 (2000), eqn. (18) *)
+    Rt[li,lj] -> - (1/2) gtu[ul,um] PD[gt[li,lj],ll,lm]
+                 + (1/2) gt[lk,li] PD[Xt[uk],lj]
+                 + (1/2) gt[lk,lj] PD[Xt[uk],li]
+                 + (1/2) Xtn[uk] Gtl[li,lj,lk]
+                 + (1/2) Xtn[uk] Gtl[lj,li,lk]
+                 + (+ Gt[uk,li,ll] Gtlu[lj,lk,ul]
+                    + Gt[uk,lj,ll] Gtlu[li,lk,ul]
+                    + Gt[uk,li,ll] Gtlu[lk,lj,ul]),
+
+    trRt -> gtu[ua,ub] Rt[la,lb],
+
+    ephi -> IfThen [conformalMethod, 1/Sqrt[phi], Exp[phi]],
+
+    Atm[ua,lb] -> gtu[ua,uc] At[lc,lb],
+
+    (* Matter terms *)
+
+    (* rho = n^a n^b T_ab *)
+    rho -> addMatter
+           1/alpha^2 (T00 - 2 beta[ui] T0[li] + beta[ui] beta[uj] T[li,lj]),
+
+    (* S_i = -p^a_i n^b T_ab, where p^a_i = delta^a_i + n^a n_i *)
+    S[li] -> addMatter (-1/alpha (T0[li] - beta[uj] T[li,lj])),
+
+    (* ADM quantities *)
+    (* See PRD 66, 084026 (2002) *)
+
+    Madm -> 1/(16 pi)
+            (+ ephi^5 (+ 16 pi addMatter rho
+                       + Atm[ua,lb] Atm[ub,la]
+                       - 2/3 trK^2)
+             - gtu[ua,ub] Gt[uc,la,ld] Gtlu[lb,lc,ud]
+             + (1 - ephi) trRt),
+
+    Jadm[li] -> 1/(16 pi) Eps[li,lj,uk] ephi^6
+                (+ 2 Atm[uj,lk]
+                 + 16 pi x[uj] S[lk]
+                 + 4/3 x[uj] PD[trK,lk]
+                 - x[uj] dgtu[ul,um,lk] At[ll,lm]),
+  @END_EQUATIONS
+@END_CALCULATION
+
+
+
+# Parameters etc.
+
+@INHERITED_IMPLEMENTATION ML_BSSN
+@INHERITED_IMPLEMENTATION TmunuBase
+
+@INT_PARAMETER conformalMethod
+  @Description "Treatment of conformal factor"
+  #@AllowedValues {{Value -> 0, Description -> "phi method"},
+  #                {Value -> 1, Description -> "W method"}}
+  @Default 0
+@END_INT_PARAMETER
+
+
+
+@END_THORN

@@ -25,19 +25,19 @@ public class Kranc {
 	private List<Group> ikpars = new ArrayList<Group>();
 	private List<Group> ekpars = new ArrayList<Group>();
 	private List<Group> kpars  = new ArrayList<Group>();
-	private List<Group> rpars  = new ArrayList<Group>();
 	private List<Group> ipars  = new ArrayList<Group>();
+	private List<Group> rpars  = new ArrayList<Group>();
 	private List<Group> calcs  = new ArrayList<Group>();
 	public Kranc() {
 		g.compile("w0","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))*");
 		g.compile("w1","([ \t\r\n]|#.*|\\(\\*((?!\\*\\))[^])*\\*\\))+");
-		g.compile("name","(?i:[a-z_][a-z0-9_]*)");
+		g.compile("name","(?i:[a-z_][a-z0-9_:]*)");
 		g.compile("dquote","\"(\\\\[^]|[^\\\\\"])*\"");
 		g.compile("thorn","{-w0}@THORN{-w1}{name}");
 		g.compile("args","({-w0}{expr}({-w0},{-w0}{expr})*|)");
 		g.compile("fun","{name}{-w0}\\[{args}{-w0}\\]");
 		g.compile("div","{fun}{-w0}->{-w0}{expr}");
-		g.compile("deriv","DERIVATIVES{-w1}{div}({-w0},{-w0}{div})*{-w0}@END_DERIVATIVES");
+		g.compile("deriv","DERIVATIVES{-w1}{div}({-w0},{-w0}{div})*{-w0}(,{-w0}|)@END_DERIVATIVES");
 		g.compile("def","DEFINE{-w1}({fun}|{name}){-w0}={-w0}{expr}");
 		g.compile("num","[0-9]+");
 		g.compile("term","{fun}|{name}|{num}|{list}|{dquote}|\\({-w0}{@expr}\\)|[+-][ \t]*{-term}");
@@ -55,25 +55,27 @@ public class Kranc {
 		g.compile("tens","TENSORS{-w0}({list}|{fun}|{name})({-w0},{-w0}({list}|{fun}|{name}))*{-w0}(,{-w0}|)@END_TENSORS");
 		g.compile("symexp","{fun}|\\{{-w0}{fun}({-w0},{-w0}{name})+\\}");
 		g.compile("sym","SYMMETRIC{-w0}{symexp}({-w0},{-w0}{symexp})*");
-		g.compile("group","GROUPS{-w0}(({fun}|{name}){-w0}->{-w0}{dquote}{-w0}(,{-w0}|))*@END_GROUPS");
+		g.compile("group","GROUPS{-w0}(({fun}|{name}){-w0}->{-w0}{name}{-w0}(,{-w0}|))*@END_GROUPS");
 		g.compile("extra_list","\\{{-w0}{name}{-w0}(,{-w0}{name}{-w0})*\\}");
 		g.compile("extra","EXTRA_GROUPS{-w0}"+
-				"({dquote}{-w0}->{-w0}{extra_list}{-w0}(,{-w0}|))*{-w0}@END_EXTRA_GROUPS");
+				"({name}{-w0}->{-w0}{extra_list}{-w0}(,{-w0}|))*{-w0}@END_EXTRA_GROUPS");
 
 		g.compile("list","\\{({@expr}({-w0},{-w0}{@expr})*|){-w0}\\}");
+		g.compile("short","({fun}|{name}){-w0}");
+                g.compile("shorts","@SHORTHANDS{-w1}{short}({-w0},{-w0}{short})*{-w0}(,{-w0}|)@END_SHORTHANDS");
 		g.compile("eqn","({fun}|{name}){-w0}->{-w0}{expr}");
 		g.compile("eqns","@EQUATIONS{-w1}{eqn}({-w0},{-w0}{eqn})*{-w0}(,{-w0}|)@END_EQUATIONS");
 		g.compile("calc_par","@{name}{-w1}{expr}({-w0},{-w0}{expr})*");
-		g.compile("calc","CALCULATION{-w0}{dquote}{-w0}"+
-				"({eqns}{-w0}|{calc_par}{-w0})*"+
+		g.compile("calc","CALCULATION{-w0}{name}{-w0}"+
+				"({shorts}{-w0}|{eqns}{-w0}|{calc_par}{-w0})*"+
 				"@END_CALCULATION");
-		g.compile("inher","INHERITED_IMPLEMENTATION{-w1}{name}({-w0},{-w0}{name})*");
+		g.compile("inher","INHERITED_IMPLEMENTATION{-w1}{name}");
 		
-		g.compile("ikpar","INHERITED_KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INHERITED_KEYWORD_PARAMETER");
-		g.compile("ekpar","EXTENDED_KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_EXTENDED_KEYWORD_PARAMETER");
-		g.compile("kpar","KEYWORD_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_KEYWORD_PARAMETER");
-		g.compile("rpar","REAL_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
-		g.compile("ipar","INT_PARAMETER{-w1}{dquote}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INT_PARAMETER");
+		g.compile("ikpar","INHERITED_KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INHERITED_KEYWORD_PARAMETER");
+		g.compile("ekpar","EXTENDED_KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_EXTENDED_KEYWORD_PARAMETER");
+		g.compile("kpar","KEYWORD_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_KEYWORD_PARAMETER");
+		g.compile("ipar","INT_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_INT_PARAMETER");
+		g.compile("rpar","REAL_PARAMETER{-w1}{name}{-w0}(@{name}{-w1}{expr}({-w0},{-w0}{expr})*{-w0})*@END_REAL_PARAMETER");
 		//g.diag(DebugOutput.out);
 	}
 	public void doFile(String inputfile, String outputfile) throws IOException {
@@ -140,7 +142,10 @@ public class Kranc {
 					String n2 = g.group(i).group(0).getPatternName();
 					if(!"fun".equals(n2))
 						throw new Error("syntax error "+n2+" "+g.group(i).group(0).near());
-					name = g.group(i).group(0).substring();
+					String n3 = g.group(i).group(0).group(0).getPatternName();
+					if(!"name".equals(n3))
+						throw new Error("syntax error "+n2+" "+g.group(i).group(0).group(0).near());
+					name = g.group(i).group(0).group(0).substring();
 					declareTensor(pw, g.group(i).group(0), tensors, name);
 					Group gg = g.group(i);
 					if(gg.groupCount()>1 && "list".equals(gg.group(1).getPatternName())) {
@@ -184,9 +189,9 @@ public class Kranc {
 				else pw.println(",");
 				pw.print("  SetGroupName[CreateGroupFromTensor[");
 				pw.print(g.group(i).substring());
-				pw.print("], ");
+				pw.print("], \"");
 				pw.print(g.group(i+1).substring());
-				pw.print("]");
+				pw.print("\"]");
 			}
 			pw.println();
 			pw.println("};");
@@ -198,9 +203,9 @@ public class Kranc {
 			for(int i=0;i+1<g.groupCount();i+=2) {
 				if(i==0) pw.println();
 				else pw.println(",");
-				pw.print("  {");
+				pw.print("  {\"");
 				pw.print(g.group(i).substring());
-				pw.print(", ");
+				pw.print("\", ");
 				pw.print(g.group(i+1).substring());
 				pw.print("}");
 			}
@@ -251,6 +256,15 @@ public class Kranc {
 			pw.println();
 			pw.println("};");*/
 			calcs.add(g);
+		} else if("shorts".equals(m)) {
+			pw.println("  Shorthands -> {");
+			for(int i=0;i<g.groupCount();i++) {
+				if(i>0) pw.println(",");
+				pw.print("    ");
+				pw.print(g.group(i).substring());
+			}
+                        pw.println();
+			pw.println("  },");
 		} else if("eqns".equals(m)) {
 			pw.println("  Equations -> {");
 			for(int i=0;i<g.groupCount();i++) {
@@ -270,6 +284,8 @@ public class Kranc {
 			ekpars.add(g);
 		} else if("kpar".equals(m)) {
 			kpars .add(g);
+		} else if("ipar".equals(m)) {
+                        ipars .add(g);
 		} else if("rpar".equals(m)) {
 			rpars .add(g);
 		} else if("end_thorn".equals(m)) {
@@ -287,6 +303,8 @@ public class Kranc {
 						pw.print(" -> ");
 						pw.print(calc.group(i).group(1).substring());
 						pw.println(",");
+					} else if("shorts".equals(mm)) {
+						formatOutput(pw, calc.group(i));
 					} else if("eqns".equals(mm)) {
 						formatOutput(pw, calc.group(i));
 					} else {
@@ -294,9 +312,8 @@ public class Kranc {
 					}
 				}
 				pw.print("  Name -> \"");
-				pw.print(thornName);
-				pw.print("_\" <> ");
-				pw.println(calc.group(0).substring());
+				pw.print(calc.group(0).substring());
+				pw.println("\"");
 				pw.println("};");
 			}
                         pw.println();
@@ -315,7 +332,7 @@ public class Kranc {
                                 Group inher = inhers.get(inum);
 				if(inum > 0) pw.print(", ");
 				pw.print('"');
-				pw.print(inher.substring());
+				pw.print(inher.group(0).substring());
 				pw.print('"');
 			}
 			pw.println("};");
