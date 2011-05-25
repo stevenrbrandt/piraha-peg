@@ -10,7 +10,7 @@
                           StandardCenteredDifferenceOperator[1,derivOrder/2,j],
   PDdissipationNth[i_] ->
     spacing[i]^(derivOrder+1) / 2^(derivOrder+2) *
-    StandardCenteredDifferenceOperator[derivOrder+2,derivOrder/2+1,i]
+    StandardCenteredDifferenceOperator[derivOrder+2,derivOrder/2+1,i],
 @END_DERIVATIVES
 
 @JACOBIAN {PD, FD, J, dJ}
@@ -18,27 +18,27 @@
 
 
 @TENSORS
-normal, tangentA, tangentB, dir, xx, rr, th, ph, J,
-admalpha, admdtalpha, admbeta, admdtbeta, H, M,
-detg, trR, Km, trK, cdphi, 
-phi, Xt, Xtn, alpha, A, beta, B, Atm, trA, trAts,
-dottrK, dotXt, cXt, cS, cA,
-e4phi, em4phi, ddetg, detgt, ddetgt, dgtu, Gtl, Gtlu, Gt,
-gK, T00, T0, rho, S, x, y, z, r, epsdiss,
-
-admg[la,lb], admK[la,lb],
-g[la,lb], K[la,lb], R[la,lb], cdphi2[la,lb],
-gt[la,lb], At[la,lb], Ats[la,lb], Rt[la,lb], Rphi[la,lb], T[la,lb],
-
-{dJ[ua,lb,lc], lb, lc},
-{G[ua,lb,lc], lb, lc},
-{Gtl[la,lb,lc], lb, lc},
-{Gt[ua,lb,lc], lb, lc},
-{gK[la,lb,lc], la, lb},
-
-gu[ua,ub], gtu[ua,ub], Atu[ua,ub],
-{dgtu[ua,ub,lc], {ua, ub}},
-{ddgtu[ua,ub,lc,ld], {ua, ub}, {lc, ld}},
+  normal, tangentA, tangentB, dir, xx, rr, th, ph, J,
+  admalpha, admdtalpha, admbeta, admdtbeta, H, M,
+  detg, trR, Km, trK, cdphi, 
+  phi, Xt, Xtn, alpha, A, beta, B, Atm, trA, trAts,
+  dottrK, dotXt, cXt, cS, cA,
+  e4phi, em4phi, ddetg, detgt, ddetgt, Gtlu,
+  T00, T0, rho, S, x, y, z, r, epsdiss,
+  
+  admg[la,lb], admK[la,lb],
+  g[la,lb], K[la,lb], R[la,lb], cdphi2[la,lb],
+  gt[la,lb], At[la,lb], Ats[la,lb], Rt[la,lb], Rphi[la,lb], T[la,lb],
+  
+  {dJ[ua,lb,lc], lb, lc},
+  {G[ua,lb,lc], lb, lc},
+  {Gtl[la,lb,lc], lb, lc},
+  {Gt[ua,lb,lc], lb, lc},
+  {gK[la,lb,lc], la, lb},
+  
+  gu[ua,ub], gtu[ua,ub], Atu[ua,ub],
+  {dgtu[ua,ub,lc], {ua, ub}},
+  {ddgtu[ua,ub,lc,ld], {ua, ub}, {lc, ld}},
 @END_TENSORS
 
 
@@ -47,15 +47,15 @@ gu[ua,ub], gtu[ua,ub], Atu[ua,ub],
 @CONNECTION {CDt, PD, Gt}
 
 @GROUPS
-phi      -> "log_confac",
-gt[la,lb]-> "metric",
-Xt[ua   ]-> "Gamma",
+  phi       -> log_confac,
+  gt[la,lb] -> metric,
+  Xt[ua   ] -> Gamma,
 @END_GROUPS
 
 @EXTRA_GROUPS
-"Grid::coordinates" -> {x, y, z, r},
-"ADMBase::metric"   -> {gxx, gxy, gxz, gyy, gyz, gzz},
-"ADMBase::curv"     -> {kxx, kxy, kxz, kyy, kyz, kzz},
+  Grid::coordinates -> {x, y, z, r},
+  ADMBase::metric   -> {gxx, gxy, gxz, gyy, gyz, gzz},
+  ADMBase::curv     -> {kxx, kxy, kxz, kyy, kyz, kzz},
 @END_EXTRA_GROUPS
 
 @DEFINE pi = N[Pi,40]
@@ -75,7 +75,7 @@ Xt[ua   ]-> "Gamma",
          {X, Union[Flatten[MatrixOfComponents[gt[la, lb]]]]}]
 
 
-@CALCULATION "Minkowski"
+@CALCULATION Minkowski
   @Schedule {"IN ADMBase_InitialData"}
   @ConditionalOnKeyword {"my_initial_data", "Minkowski"}
   @EQUATIONS
@@ -88,13 +88,13 @@ Xt[ua   ]-> "Gamma",
     alpha     -> 1,
     A         -> 0,
     beta[ua]  -> 0,
-    B[ua]     -> 0
+    B[ua]     -> 0,
   @END_EQUATIONS
 @END_CALCULATION
 
 
 
-@CALCULATION "convertFromADMBase"
+@CALCULATION convertFromADMBase
   @Schedule {"AT initial AFTER ADMBase_PostInitial"}
   @ConditionalOnKeyword {"my_initial_data", "ADMBase"}
   @Shorthands g[la,lb], detg, gu[ua,ub], em4phi
@@ -118,7 +118,7 @@ Xt[ua   ]-> "Gamma",
 
 
 
-@CALCULATION "convertFromADMBaseGammaCalc"
+@CALCULATION convertFromADMBaseGammaCalc
   @Schedule {"AT initial AFTER " <> BSSN <> "_convertFromADMBase"}
   @ConditionalOnKeyword {"my_initial_data", "ADMBase"}
   # Do not synchronise right after this routine; instead, synchronise
@@ -158,17 +158,18 @@ Xt[ua   ]-> "Gamma",
                      (+ admdtbeta[ua]
                       - ShiftAdvectionCoeff beta[ub] PDua[beta[ua],lb]
                       - ShiftAdvectionCoeff Abs[beta[ub]] PDus[beta[ua],lb]),
-                     0] 
+                     0],
   @END_EQUATIONS
 @END_CALCULATION
 
 
 
-@INHERITED_IMPLEMENTATION ADMBase, TmunuBase
+@INHERITED_IMPLEMENTATION ADMBase
+@INHERITED_IMPLEMENTATION TmunuBase
 
 
 
-@KEYWORD_PARAMETER "my_initial_data"
+@KEYWORD_PARAMETER my_initial_data
   # @Visibility "restricted"
   # @Description "ddd"
   @AllowedValues {"ADMBase", "Minkowski"}
@@ -177,7 +178,7 @@ Xt[ua   ]-> "Gamma",
 
 
 
-@REAL_PARAMETER "LapseACoeff"
+@REAL_PARAMETER LapseACoeff
   @Description "Whether to evolve A in time"
   @Default 0
 @END_REAL_PARAMETER

@@ -1,4 +1,4 @@
-@THORN ML_ADMQuantities
+@THORN MLP_ADMQuantities
 
 # Global settings
 
@@ -43,13 +43,13 @@
 
 @EXTRA_GROUPS
   grid::coordinates               -> {x, y, z, r}
-  McLachlan::ML_log_confac        -> {phi}
-  McLachlan::ML_metric            -> {gt11, gt12, gt13, gt22, gt23, gt33}
-  McLachlan::ML_Gamma             -> {Xt1, Xt2, Xt3}
-  McLachlan::ML_trace_curv        -> {trK}
-  McLachlan::ML_curv              -> {At11, At12, At13, At22, At23, At33}
-  McLachlan::ML_lapse             -> {alpha}
-  McLachlan::ML_shift             -> {beta1, beta2, beta3}
+  ML_BSSN::ML_log_confac          -> {phi}
+  ML_BSSN::ML_metric              -> {gt11, gt12, gt13, gt22, gt23, gt33}
+  ML_BSSN::ML_Gamma               -> {Xt1, Xt2, Xt3}
+  ML_BSSN::ML_trace_curv          -> {trK}
+  ML_BSSN::ML_curv                -> {At11, At12, At13, At22, At23, At33}
+  ML_BSSN::ML_lapse               -> {alpha}
+  ML_BSSN::ML_shift               -> {beta1, beta2, beta3}
   TmunuBase::stress_energy_scalar -> {eTtt}
   TmunuBase::stress_energy_vector -> {eTtx, eTty, eTtz}
   TmunuBase::stress_energy_tensor -> {eTxx, eTxy, eTxz, eTyy, eTyz, eTzz}
