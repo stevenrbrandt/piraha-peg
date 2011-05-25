@@ -1,12 +1,21 @@
-# This is an until-end-of-line comment
+@THORN MLP_BSSN
 
-@THORN BSSN
 
+# Global settings
+
+@DEFINE derivOrder          = 4
+@DEFINE useGlobalDerivs     = False
+@DEFINE evolutionTimelevels = 3
+@DEFINE addMatter           = 1
+
+
+
+# Finite differencing operators
 
 @DERIVATIVES
   PDstandardNth[i_]    -> StandardCenteredDifferenceOperator[1,derivOrder/2,i],
   PDstandardNth[i_,i_] -> StandardCenteredDifferenceOperator[2,derivOrder/2,i],
-  PDstandardNth[i_,j_] -> StandardCenteredDifferenceOperator[1,derivOrder/2,i]
+  PDstandardNth[i_,j_] -> StandardCenteredDifferenceOperator[1,derivOrder/2,i] *
                           StandardCenteredDifferenceOperator[1,derivOrder/2,j],
   PDdissipationNth[i_] ->
     spacing[i]^(derivOrder+1) / 2^(derivOrder+2) *
@@ -60,6 +69,8 @@
 
 @DEFINE pi = N[Pi,40]
 
+@DEFINE KD = KroneckerDelta
+
 @DEFINE
   detgExpr  = Det [MatrixOfComponents [g [la,lb]]]
 @DEFINE
@@ -75,11 +86,11 @@
          {X, Union[Flatten[MatrixOfComponents[gt[la, lb]]]]}]
 
 
+
 @CALCULATION Minkowski
   @Schedule {"IN ADMBase_InitialData"}
   @ConditionalOnKeyword {"my_initial_data", "Minkowski"}
   @EQUATIONS
-    phi       -> IfThen[conformalMethod, 1, 0],
     phi       -> IfThen[conformalMethod, 1, 0],
     gt[la,lb] -> KD[la,lb],
     trK       -> 0,
@@ -119,7 +130,7 @@
 
 
 @CALCULATION convertFromADMBaseGammaCalc
-  @Schedule {"AT initial AFTER " <> BSSN <> "_convertFromADMBase"}
+  @Schedule {"AT initial AFTER convertFromADMBase"}
   @ConditionalOnKeyword {"my_initial_data", "ADMBase"}
   # Do not synchronise right after this routine; instead, synchronise
   # after extrapolating
@@ -128,8 +139,7 @@
   # are set correctly before extrapolating.  (We will need to
   # synchronise again after extrapolating because extrapolation does
   # not fill ghost zones, but this is irrelevant here.)
-  @Shorthands dir[ua]
-  @Shorthands detgt, gtu[ua,ub], Gt[ua,lb,lc], theta
+  @Shorthands dir[ua], detgt, gtu[ua,ub], Gt[ua,lb,lc], theta
   @EQUATIONS
     dir[ua] -> Sign[beta[ua]],
     

@@ -1,4 +1,4 @@
-@THORN SimpleWave
+@THORN MLP_SimpleWave
 
 @DERIVATIVES
   PDstandard2nd[i_]     -> StandardCenteredDifferenceOperator[1,1,i],
