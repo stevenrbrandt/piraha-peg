@@ -478,6 +478,7 @@ public class Kranc {
 			pw.println("  EvolutionTimelevels -> evolutionTimelevels,");
 			pw.println("  DefaultEvolutionTimelevels -> 3,"); 
 			pw.println("  UseLoopControl -> True,");
+			pw.println("  UseVectors -> True,");
 			pw.println("  InheritedImplementations -> inheritedImplementations,");
 			pw.println("  InheritedKeywordParameters -> inheritedKeywordParameters,");
 			pw.println("  ExtendedKeywordParameters -> extendedKeywordParameters,");
