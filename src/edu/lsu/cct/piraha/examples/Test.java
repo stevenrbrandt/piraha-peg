@@ -107,7 +107,7 @@ public class Test {
 		g.compile("block", "\\{ *((decl +{name} *;|use +{$name} *;|{block}) *)*\\}");
 		g.diag(DebugOutput.out);
 		m = g.matcher("block", "{decl b;{ decl a; use a;} {{use a;}}}");
-		assert(m.matches());
+		//assert(m.matches());
 		
 		Grammar xml = new Grammar();
 		xml.compileFile(Test.class.getResourceAsStream("xml.peg"));
@@ -130,6 +130,8 @@ public class Test {
 		test("[a\\-]+","a-a-",4);
 		test("[-a]+","a-a-",4);
 		test("(\\[(\\\\[^]|[^\\]\\\\])*\\]|\\\\[^]|[^ \t\r\n\b])+","xxx",3);
+		test("[a-zA-Z0-9\\.\\*]+|\"[^\"]*\"|'[^']*'","\"Failed password\"",17);
+		test("(b{!}|.)*","aaabaaa",4);
 		//test("[^ \t\r\n\b]+","abc",3);
 		
 		g = new Grammar();

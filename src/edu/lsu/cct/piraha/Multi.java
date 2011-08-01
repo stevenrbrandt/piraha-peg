@@ -15,14 +15,18 @@ public class Multi extends Pattern {
 		for(int i=0;i<max;i++) {
 			int textSave = m.getTextPos();
 			int sz = m.subMatches.size();
-			if(!Matcher.matchAll(pattern,m) || textSave == m.getTextPos()) {
-				m.setTextPos(textSave);
-				int nsz = m.subMatches.size();
-				while(nsz > sz) {
-					m.subMatches.removeLast();
-					nsz--;
+			try {
+				if(!Matcher.matchAll(pattern,m) || textSave == m.getTextPos()) {
+					m.setTextPos(textSave);
+					int nsz = m.subMatches.size();
+					while(nsz > sz) {
+						m.subMatches.removeLast();
+						nsz--;
+					}
+					return i >= min;
 				}
-				return i >= min;
+			} catch (BreakException e) {
+				return true;
 			}
 		}
 		return true;

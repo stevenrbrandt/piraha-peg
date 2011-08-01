@@ -132,7 +132,7 @@ public class IfParse {
 	public static void buildGrammar(Grammar g) {
 		g.compile("isdefined","defined( +{word}| *\\( *{word} *\\))");
 		g.compile("not","! *{if_expr}");
-		g.addOps("if_expr","{num}|{isdefined}|{word}|\\({-if_expr}\\)|{not}"," *",
+		g.addOps("if_expr","{num}|{isdefined}|{word}|\\({-if_expr}\\)|{not}","[ \t]*",
 				new String[][]{
 					new String[]{"bool","\\|\\||\\&\\&"},
 					new String[]{"comp","<=|>=|==|!=|>|<"},

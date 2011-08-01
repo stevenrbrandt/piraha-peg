@@ -63,16 +63,16 @@ public class Cpp {
 		g.compile("endif","endif");
 		g.compile("join","({target}|{num}|{argvalues}){-sp}*##{-sp}*({target}|{num}|{argvalues})");
 		g.compile("stringify","#{-sp}*{word}");
-		g.compile("macro","{-w}*#{-w}*({def}|{inc}|{ifdef}|{ifndef}|{else}|{undef}|{endif}|{if}|{elif}|{error}|{warning}|{pragma})({defined}|{join}|{stringify}|{-elem})*");
+		g.compile("macro","{-w}*#{-w}*({def}|{inc}|{ifdef}|{ifndef}|{else}|{undef}|{endif}|{if}|{elif}|{error}|{warning}|{pragma})({defined}|{join}|{stringify}|{-elem}|{-w})*");
 		g.compile("other","[^,\\(#\"\\)\n \t\r\ba-zA-Z0-9_\\\\]+");
 		g.compile("argval","({defined}|{join}|{stringify}|{-elem}|\n)*");
-		g.compile("argvalues","\\({argval}(,{argval})*\\)");
+		g.compile("argvalues","\\({-w}*{argval}{-w}*(,[ \t]*{argval}[ \t]*)*\\)");
 		g.compile("target","{word}({-sp}*{argvalues}|)");
-		g.compile("elem", "({scomment}|{dcomment}|{quote}|{argvalues}|{target}|{squote}|{w}+|{num}|{other})");
+		g.compile("elem", "{-w}*({scomment}|{dcomment}|{quote}|{argvalues}|{target}|{squote}|{w}+|{num}|{other})");
 		g.compile("word","(?!\\bdefined\\b)(?i:[a-z_][a-z0-9_]*)");
 		g.compile("comma",",");
 		g.compile("line","({macro}|({-elem}|{comma})*)(\n|$)");
-		g.compile("defined","\\bdefined{-w}*(\\({-w}*{word}{-w}*\\)|\\b{word})");
+		g.compile("defined","\\bdefined({-w}*\\({-w}*{word}{-w}*\\)|{-w}+{word})");
 		g.compile("rematch","^({join}|{stringify}|{-elem})*$");
 		g.compile("ifmatch","^({defined}|{-elem})*");
 		
@@ -137,9 +137,9 @@ public class Cpp {
 				throw new Error("fail "+m.near());
 			//System.out.println("pos="+pos+"/"+m.getEnd()+"/"+contents.length());
 			pos = m.getEnd();
-			//System.out.println("===");
-			//m.dumpMatches();
-			//System.out.println("==="+m.getPatternName());
+			System.out.println("===");
+			m.dumpMatches();
+			System.out.println("==="+m.getPatternName());
 			if(m.groupCount() > 0 && "macro".equals(m.group(0).getPatternName())) {
 				processMacros(m.group(0));
 			} else if(output.peek()==IfElseState.TRUE) {
@@ -367,7 +367,9 @@ public class Cpp {
 				throw new RuntimeException("Error directive processessed: in file "+currentFile+" near line "+g.near());
 			}
 		} else if("if".equals(m)) {
+			System.out.println("+++");
 			if(output.peek()==IfElseState.TRUE) {
+				g.dumpMatches();
 				processIf(g);
 			} else {
 				output.push(IfElseState.FALSE);
@@ -384,6 +386,7 @@ public class Cpp {
 	private void processIf(Group g) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(g.getText().substring(g.group(0).getEnd(), g.getEnd()));
+		System.out.println("processIf("+sb+")");
 		do {
 			modified = false;
 			Matcher m2 = this.g.matcher("ifmatch", sb.toString());

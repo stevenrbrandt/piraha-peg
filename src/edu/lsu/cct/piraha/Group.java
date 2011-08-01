@@ -16,6 +16,8 @@ public class Group implements Cloneable {
 	LinkedList<Group> subMatches;
 	Stack<LinkedList<Group>> savedMatches;
 	public int groupCount() {
+		if(subMatches == null)
+			return 0;
 		return subMatches.size();
 	}
 	public Group group(int n) {

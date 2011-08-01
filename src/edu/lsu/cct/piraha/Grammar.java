@@ -188,7 +188,7 @@ public class Grammar {
 		char[] buf = new char[fileSize];
 		FileReader fr = new FileReader(file);
 		int bytesRead = fr.read(buf,0,buf.length);
-		if(bytesRead != buf.length)
+		if(bytesRead <= 0)
 			throw new IOException("Could not read entire file: "+file);
 		return new String(buf);
 	}
