@@ -1,0 +1,10 @@
+<project default="jar">
+	<target name="jar" depends="build-src">
+		<jar jarfile="piraha.jar" basedir="bin" />
+		<jar jarfile="piraha-src.jar" basedir="src" />
+	</target>
+    <target name="build-src">
+        <mkdir dir="bin"/>
+        <javac srcdir="src" destdir="bin"/>
+    </target>
+</project>
