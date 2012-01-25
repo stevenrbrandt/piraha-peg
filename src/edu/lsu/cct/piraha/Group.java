@@ -94,7 +94,11 @@ public class Group implements Cloneable {
 	public void dumpMatchesXML(DebugOutput out) {
 		out.print("<");
 		out.print(getPatternName());
-		out.print(">");
+		out.print(" startIndex='");
+		out.print(begin);
+		out.print("' endIndex='");
+		out.print(end);
+		out.print("'>");
 		if(groupCount()==0) {
 			out.print(xmltext(substring()));
 		} else {

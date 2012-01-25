@@ -131,8 +131,8 @@ public class Test {
 		test("[-a]+","a-a-",4);
 		test("(\\[(\\\\[^]|[^\\]\\\\])*\\]|\\\\[^]|[^ \t\r\n\b])+","xxx",3);
 		test("[a-zA-Z0-9\\.\\*]+|\"[^\"]*\"|'[^']*'","\"Failed password\"",17);
-		test("(b{!}|.)*","aaabaaa",4);
-		//test("[^ \t\r\n\b]+","abc",3);
+		test("(b{brk}|.)*","aaabaaa",4);
+		test("[^ \t\r\n\b]+","abc",3);
 		
 		g = new Grammar();
 		g.compile("import", "import");

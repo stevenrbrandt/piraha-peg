@@ -9,7 +9,7 @@ public class Break extends Pattern {
 
 	@Override
 	public String decompile() {
-		return "{!}";
+		return "{brk}";
 	}
 
 	@Override

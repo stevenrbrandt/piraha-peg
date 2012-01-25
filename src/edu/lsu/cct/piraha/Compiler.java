@@ -103,7 +103,7 @@ class Compiler {
 					s += ',' + sb2.toString();
 				if(s.startsWith("$"))
 					patternList.add(new Name(s.substring(1)));
-				else if(s.equals("!"))
+				else if(s.equals("brk"))
 					patternList.add(new Break());
 				else
 					patternList.add(new Lookup(s,this.grammar));

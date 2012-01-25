@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,8 +17,9 @@ public class Grammar {
 	Map<String,Pattern> patterns = new HashMap<String,Pattern>();
 	Map<String,Grammar> grammars = null;
 	public void importGrammar(String name,Grammar g) {
-		if(grammars == null)
+		if(grammars == null) {
 			grammars = new HashMap<String,Grammar>();
+		}
 		if(grammars.containsKey(name)) {
 			throw new ParseException("Grammar '"+name+"' is already defined");
 		}
@@ -177,6 +177,8 @@ public class Grammar {
 		Matcher m = new Matcher();
 		m.text = text;
 		m.pattern = patterns.get(patternName);
+		if(m.pattern == null)
+			throw new ParseException("No such pattern: '"+patternName+"'");
 		m.patternName = patternName;
 		return m;
 	}
