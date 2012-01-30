@@ -65,7 +65,7 @@ public class Grammar {
         pegRules.compile("white","([ \t\r\b]|\n(?=[\n#])|\n[ \t\r\b]|#[^\n]*)*");
         //pegRules.compile("white","([ \t\r\b\n]|#[^\n]*)*");
         pegRules.compile("rule","({name}{-white}={-white}({regex}{-white})*"+/*|{import}{-white}\"{filename}\"{-white}as\\b{-white}{name}*/")");
-        pegRules.compile("rules","^{-white}((^|\n){rule})*$");
+        pegRules.compile("rules","^{-white}((^|\n){rule})*[ \t\r\n]*$");
         Matcher pegMatcher = pegRules.matcher("rules", contents);
         if(!pegMatcher.matches()) {
             throw new ParseException("Syntax error near line "+pegMatcher.near()+" : "+
