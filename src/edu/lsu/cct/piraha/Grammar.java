@@ -16,6 +16,7 @@ import java.util.Set;
 public class Grammar {
 	Map<String,Pattern> patterns = new HashMap<String,Pattern>();
 	Map<String,Grammar> grammars = null;
+	String lastCompiled;
 	public void importGrammar(String name,Grammar g) {
 		if(grammars == null) {
 			grammars = new HashMap<String,Grammar>();
@@ -36,6 +37,7 @@ public class Grammar {
 		Compiler c = new Compiler(this, name,pattern);
 		Pattern pat = c.getPattern(false,false);
 		patterns.put(name, pat);
+		lastCompiled = name;
 		return pat;
 	}
 	
@@ -169,6 +171,10 @@ public class Grammar {
 				extraPatterns.add(p);
 		}
 		return extraPatterns;
+	}
+	
+	public Matcher matcher(String text) {
+		return matcher(lastCompiled, text);
 	}
 
 	public Matcher matcher(String patternName, String text) {

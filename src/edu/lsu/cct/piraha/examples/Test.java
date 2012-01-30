@@ -34,7 +34,7 @@ public class Test {
 			pe.visit(dv);
 			throw new RuntimeException("decompile error "+pat+" != "+pe.decompile());
 		}
-		Matcher m = g.matcher("d",text);//"a6ax");
+		Matcher m = g.matcher(text);//"a6ax");
 		//m.getPattern().diag();
 		m.getPattern().visit(new DebugVisitor(DebugOutput.out));
 		boolean found = m.matches();
@@ -140,5 +140,6 @@ public class Test {
 		m = g.matcher("pat","foo_import_bar");
 		m.find();
 		System.out.println(m.substring());
+		System.out.println("All tests complete");
 	}
 }
