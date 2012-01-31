@@ -1,26 +1,43 @@
 package edu.lsu.cct.piraha;
 
+import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.Stack;
 
 public class Group implements Cloneable {
 	String patternName, text;
 	int begin, end;
+	Group replacement;
+	
+	public void setReplacement(Group replacement) {
+		if(replacement.getPatternName().equals(patternName))
+			this.replacement = replacement;
+		else
+			throw new MatchException("replacement group does not have patternName='"+patternName+"'");
+	}
 	
 	public int getBegin() {
+		if(replacement != null)
+			return replacement.getBegin();
 		return begin;
 	}
 	public int getEnd() {
+		if(replacement != null)
+			replacement.getEnd();
 		return end;
 	}
 	LinkedList<Group> subMatches;
 	Stack<LinkedList<Group>> savedMatches;
 	public int groupCount() {
+		if(replacement != null)
+			return replacement.groupCount();
 		if(subMatches == null)
 			return 0;
 		return subMatches.size();
 	}
 	public Group group(int n) {
+		if(replacement != null)
+			return replacement.group(n);
 		return subMatches.get(n);
 	}
 	
@@ -48,10 +65,14 @@ public class Group implements Cloneable {
 	}
 
 	public Group group() {
+		if(replacement != null)
+			return replacement.group();
 		return new Group(patternName,begin,end,subMatches,text);
 	}
 
 	public String substring(String text) {
+		if(replacement != null)
+			return replacement.substring(text);
 		return text.substring(begin,end);
 	}
 
@@ -71,6 +92,8 @@ public class Group implements Cloneable {
 		return near;
 	}
 	public String substring() {
+		if(replacement != null)
+			return replacement.substring();
 		if(begin < 0 || end < 0) return "";
 		return text.substring(begin,end);
 	}
@@ -78,9 +101,13 @@ public class Group implements Cloneable {
 		return patternName;
 	}
 	public char charAt(int i) {
+		if(replacement != null)
+			return replacement.charAt(i);
 		return text.charAt(i);
 	}
 	public String getText() {
+		if(replacement != null)
+			return replacement.text;
 		return text;
 	}
 	
@@ -88,57 +115,73 @@ public class Group implements Cloneable {
 		return substring();
 	}
 	public void dumpMatchesXML() {
-		dumpMatchesXML(DebugOutput.out);
-		DebugOutput.out.pw.flush();
+		if(replacement != null)
+			dumpMatchesXML();
+		else {
+			dumpMatchesXML(DebugOutput.out);
+			DebugOutput.out.pw.flush();
+		}
 	}
 	public void dumpMatchesXML(DebugOutput out) {
-		out.print("<");
-		out.print(getPatternName());
-		out.print(" startIndex='");
-		out.print(begin);
-		out.print("' endIndex='");
-		out.print(end);
-		out.print("'>");
-		if(groupCount()==0) {
-			out.print(xmltext(substring()));
+		if(replacement != null) {
+			replacement.dumpMatches(out);
 		} else {
-			out.println();
-			out.indent++;
-			try {
-				for(Group match : subMatches) {
-					match.dumpMatchesXML(out);
+			out.print("<");
+			out.print(getPatternName());
+			out.print(" startIndex='");
+			out.print(begin);
+			out.print("' endIndex='");
+			out.print(end);
+			out.print("'>");
+			if(groupCount()==0) {
+				out.print(xmltext(substring()));
+			} else {
+				out.println();
+				out.indent++;
+				try {
+					for(Group match : subMatches) {
+						match.dumpMatchesXML(out);
+					}
+				} finally {
+					out.indent--;
 				}
-			} finally {
-				out.indent--;
 			}
+			out.print("</");
+			out.print(getPatternName());
+			out.println(">");
 		}
-		out.print("</");
-		out.print(getPatternName());
-		out.println(">");
 	}
 	public void dumpMatches() {
-		dumpMatches(DebugOutput.out);
-		DebugOutput.out.pw.flush();
+		if(replacement != null) {
+			replacement.dumpMatches();
+		} else {
+			dumpMatches(DebugOutput.out);
+			DebugOutput.out.pw.flush();
+		}
 	}
 	public void dumpMatches(DebugOutput out) {
-		out.print(getPatternName());
-		if(groupCount()==0) {
-			out.print("=(");
-			out.outs(substring());
-			out.println(")");
+		if(replacement != null) {
+			replacement.dumpMatches(out);
 		} else {
-			out.println(":");
-			out.indent+=2;
-			try {
-				for(int i=0;i<groupCount();i++) {
-					Group match = group(i);
-					out.print("[");
-					out.print(i);
-					out.print("] ");
-					match.dumpMatches(out);
+			out.print(getPatternName());
+			if(groupCount()==0) {
+				out.print("=(");
+				out.outs(substring());
+				out.println(")");
+			} else {
+				out.println(":");
+				out.indent+=2;
+				try {
+					for(int i=0;i<groupCount();i++) {
+						Group match = group(i);
+						out.print("[");
+						out.print(i);
+						out.print("] ");
+						match.dumpMatches(out);
+					}
+				} finally {
+					out.indent-=2;
 				}
-			} finally {
-				out.indent-=2;
 			}
 		}
 	}
@@ -160,5 +203,21 @@ public class Group implements Cloneable {
 				sb.append(c);
 		}
 		return sb.toString();
+	}
+	public void generate(PrintWriter pw) {
+		if(replacement != null) {
+			replacement.generate(pw);
+		} else {
+			int children = groupCount();
+			if(children == 0) {
+				pw.print(substring());
+			} else {
+				pw.print(text.substring(begin,group(0).begin));
+				for(int i=0;i<children;i++) {
+					group(i).generate(pw);
+				}
+				pw.print(text.substring(group(children-1).end,end));
+			}
+		}
 	}
 }

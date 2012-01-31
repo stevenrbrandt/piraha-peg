@@ -233,4 +233,18 @@ public class Grammar {
 		}
 		return sb.toString();
 	}
+
+	/**
+	 * Convenience method to get a group object from a pattern name and some text
+	 * @param pattern
+	 * @param text
+	 * @return
+	 */
+	public Group match(String pattern, String text) {
+		Matcher m = matcher(pattern,text);
+		if(m.matches())
+			return m.group();
+		else
+			throw new MatchException(m.near().toString());
+	}
 }
