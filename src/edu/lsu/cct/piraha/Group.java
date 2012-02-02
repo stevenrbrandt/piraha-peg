@@ -220,4 +220,21 @@ public class Group implements Cloneable {
 			}
 		}
 	}
+	public Group get(String... args) {
+		return get(0,args);
+	}
+
+	private Group get(int index, String[] args) {
+		if(index >= args.length)
+			return this;
+		String pn = args[index];
+		for(int i=0;i<groupCount();i++) {
+			if(pn.equals(group(i).getPatternName())) {
+				Group g = group(i).get(index+1,args);
+				if(g != null)
+					return g;
+			}
+		}
+		return null;
+	}
 }
