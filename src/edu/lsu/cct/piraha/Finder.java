@@ -86,17 +86,21 @@ public class Finder {
 			FindPart fb = stitch(root.follow);
 			root.follow = new ArrayList<FindPart>();
 			if(root.optional || root.star) {
-				FindPart bridge = new FindPart();
 				FindPart newRoot = new FindPart();
 				newRoot.next.add(fb);
 				if(root.star) {
-					newRoot.next.add(dup(fb));
-					stitch(fb,newRoot);
+					FindPart blockStitch = new FindPart();
+					blockStitch.stitch = false;
+					FindPart dupfb = dup(fb);
+					newRoot.next.add(dupfb);
+					blockStitch.next.add(newRoot);
+					stitch(dupfb,blockStitch);
 				} else {
+					FindPart bridge = new FindPart();
 					newRoot.next.add(bridge);
+					stitch(bridge,last);
 				}
 				stitch(fb,last);
-				stitch(bridge,last);
 				root = newRoot;
 				continue;
 			}
@@ -137,12 +141,19 @@ public class Finder {
 	}
 
 	private static void stitch(FindPart root, FindPart fb) {
-		if(fb == null)
+		if(fb == null || !root.stitch)
 			return;
-		for(int i=0;i<root.next.size();i++) {
-			stitch(root.next.get(i),fb);
+		int n = 0;
+		if(root.stitch) {
+			for(int i=0;i<root.next.size();i++) {
+				FindPart rooti = root.next.get(i);
+				if(!rooti.stitch)
+					continue;
+				stitch(rooti,fb);
+				n++;
+			}
 		}
-		if(root.next.size()==0) {
+		if(n==0) {
 			root.next.add(fb);
 		}
 	}
@@ -167,7 +178,7 @@ public class Finder {
 			return nextId++;
 		}
 		final int id = getNextId();
-		boolean optional = false, star = false;
+		boolean optional = false, star = false, stitch = true, capture = true;
 
 		@Override
 		public boolean equals(Object o) {
@@ -240,7 +251,7 @@ public class Finder {
 							fb.find(input.group(j),results);
 						}
 					}
-					if(next.size()==0) {
+					if(next.size()==0 && capture) {
 						results.add(input);
 					}
 				}
