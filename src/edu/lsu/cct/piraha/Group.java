@@ -64,6 +64,13 @@ public class Group implements Cloneable {
 		this.text = m.text;
 	}
 
+	Group(Group g) {
+		subMatches = new LinkedList<Group>();
+		this.patternName = "$empty";
+		this.text = "$empty";
+		subMatches.add(g);
+	}
+
 	public Group group() {
 		if(replacement != null)
 			return replacement.group();
@@ -112,7 +119,7 @@ public class Group implements Cloneable {
 	}
 	
 	public String toString() {
-		return substring();
+		return getPatternName()+"="+substring();
 	}
 	public void dumpMatchesXML() {
 		if(replacement != null)
