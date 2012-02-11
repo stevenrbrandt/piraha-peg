@@ -245,7 +245,7 @@ public class Finder {
 		public void find(Group input,Set<Group> results) {
 			if(elem != null) {
 				String pattern = elem.group(0).substring();
-				if(Find.wildMatch(pattern,input.getPatternName())) {
+				if(wildMatch(pattern,input.getPatternName())) {
 					for(FindPart fb : next) {
 						for(int j=0;j<input.groupCount();j++) {
 							fb.find(input.group(j),results);
@@ -308,6 +308,32 @@ public class Finder {
 					follow.get(i).toString(used,sb);
 				}
 				sb.append(']');
+			}
+		}
+	}
+
+	public static boolean wildMatch(String wild, String str) {
+		return wildMatch(wild,0,str,0);
+	}
+
+	private static boolean wildMatch(String wild, int i, String str, int j) {
+		while(true) {
+			if(i == wild.length() && j == str.length())
+				return true;
+			else if(i + 1 == wild.length() && j == str.length() && wild.charAt(i)=='*')
+				return true;
+			else if(i == wild.length() || j == str.length())
+				return false;
+			char wc = wild.charAt(i);
+			char sc = str.charAt(j);
+			if(wc == sc) {
+				i++; j++;
+			} else if(wc == '*') {
+				if(wildMatch(wild,i+1,str,j))
+					return true;
+				j++;
+			} else if(wc != sc) {
+				return false;
 			}
 		}
 	}
