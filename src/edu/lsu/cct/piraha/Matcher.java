@@ -1,6 +1,7 @@
 package edu.lsu.cct.piraha;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
@@ -32,17 +33,17 @@ public class Matcher extends Group {
 	public boolean matches() {
 		return match(0);
 	}
-	final public int getTextPos() {
+	public final int getTextPos() {
 		return textPos;
 	}
-	final public void setTextPos(int newTextPos) {
+	public final void setTextPos(int newTextPos) {
 		if(newTextPos > maxTextPos) {
 			maxTextPos = newTextPos;
 			maxLookup = lookStack.toString();
 		}
 		textPos = newTextPos;
 	}
-	final public void incrTextPos(int incr) {
+	public final void incrTextPos(int incr) {
 		setTextPos(getTextPos()+incr);
 	}
 	public boolean match(int pos) {
@@ -56,7 +57,8 @@ public class Matcher extends Group {
 			didMatch = true;
 			return true;
 		}
-		begin = end = -1;
+		begin = -1;
+		end = -1;
 		didMatch = false;
 		return false;
 	}
@@ -81,18 +83,6 @@ public class Matcher extends Group {
 		return text;
 	}
 	
-	public static class Near {
-		String text,rule;
-		int lineNum=1, posInLine, startOfLine, endOfLine;
-		public String toString() {
-			String line = text.substring(startOfLine,endOfLine);
-			if(rule != null)
-				return ""+lineNum+" in {"+rule+"}: '"+(line.substring(0,posInLine)+"|"+line.substring(posInLine)).trim()+"'";
-			else
-				return ""+lineNum+": '"+(line.substring(0,posInLine)+"|"+line.substring(posInLine)).trim()+"'";
-		}
-	}
-	
 	public Near near() {
 		Near near = new Near();
 		near.text = text;
@@ -104,22 +94,13 @@ public class Matcher extends Group {
 			}
 		}
 		near.posInLine = maxTextPos - near.startOfLine;
-		for(near.endOfLine = maxTextPos; near.endOfLine < text.length();near.endOfLine++)
+		near.endOfLine = maxTextPos;
+		for(; near.endOfLine < text.length();near.endOfLine++)
 			if(text.charAt(near.endOfLine) == '\n')
 				break;
 		return near;
 	}
 	
-	static class Mapping {
-		int from, delta;
-		Mapping(int from,int delta) {
-			this.from = from;
-			this.delta = delta;
-		}
-		public String toString() {
-			return "["+from+" += "+delta+"]";
-		}
-	}
 	List<Mapping> mappings = null;
 	StringBuffer sb = null;
 	int lastAppend = 0, lastDelta = 0;

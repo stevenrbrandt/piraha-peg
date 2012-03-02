@@ -1,6 +1,7 @@
 package edu.lsu.cct.piraha;
 
 public class Literal extends Pattern {
+	final static String SPECIAL = "*{}[+?()^$|.\\";
 	char ch;
 	public Literal(int val) {
 		this.ch = (char) val;
@@ -18,7 +19,7 @@ public class Literal extends Pattern {
 	}
 	
 	public static String outc(char c) {
-		if("*{}[+?()^$|.\\".indexOf(c) >= 0)
+		if(SPECIAL.indexOf(c) >= 0)
 			return "\\"+c;
 		else
 			return DebugOutput.outc(c);

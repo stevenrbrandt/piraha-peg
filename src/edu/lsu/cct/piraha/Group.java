@@ -45,7 +45,7 @@ public class Group implements Cloneable {
 	
 	public final static LinkedList<Group> emptyList = new LinkedList<Group>();
 
-	static public Group make(String lookup, String value) {
+	public static Group make(String lookup, String value) {
 		return new Group(lookup,0,value.length(),emptyList,value);
 	}
 	
@@ -83,8 +83,8 @@ public class Group implements Cloneable {
 		return text.substring(begin,end);
 	}
 
-	public Matcher.Near near() {
-		Matcher.Near near = new Matcher.Near();
+	public Near near() {
+		Near near = new Near();
 		near.text = text;
 		for(int i=0;i<text.length() && i<begin;i++) {
 			if(text.charAt(i)=='\n') {
@@ -93,9 +93,14 @@ public class Group implements Cloneable {
 			}
 		}
 		near.posInLine = begin - near.startOfLine;
-		for(near.endOfLine = begin; near.endOfLine < text.length();near.endOfLine++)
-			if(text.charAt(near.endOfLine) == '\n')
+		near.endOfLine = begin;
+		//for(near.endOfLine = begin; near.endOfLine < text.length();near.endOfLine++)
+		for(int n = begin;n < text.length();n++) {
+			if(text.charAt(near.endOfLine) == '\n') {
+				near.endOfLine = n;
 				break;
+			}
+		}
 		return near;
 	}
 	public String substring() {
@@ -133,11 +138,11 @@ public class Group implements Cloneable {
 		if(replacement != null) {
 			replacement.dumpMatches(out);
 		} else {
-			out.print("<");
+			out.print("<node name='");
 			out.print(getPatternName());
-			out.print(" startIndex='");
+			out.print("' start='");
 			out.print(begin);
-			out.print("' endIndex='");
+			out.print("' end='");
 			out.print(end);
 			out.print("'>");
 			if(groupCount()==0) {
@@ -158,6 +163,68 @@ public class Group implements Cloneable {
 			out.println(">");
 		}
 	}
+	public void dumpMatchesPerl(String var,DebugOutput out) {
+		out.print("my $"+var+"=");
+		dumpMatchesPerl(out);
+		out.println(";");
+	}
+	public void dumpMatchesPerl(DebugOutput out) {
+		if(replacement != null) {
+			replacement.dumpMatches(out);
+		} else {
+			out.print("{name=>'");
+			out.print(getPatternName());
+			out.print("', start=>'");
+			out.print(begin);
+			out.print("', end=>'");
+			out.print(end);
+			out.print("'");
+			if(groupCount()==0) {
+				out.print(", text=>\"");
+				out.print(perltext(substring()));
+				out.print('"');
+			} else {
+				out.print(", children=>[");
+				out.println();
+				out.indent++;
+				try {
+					boolean first = true;
+					for(Group match : subMatches) {
+						if(first) {
+							first = false;
+						} else {
+							out.println(",");
+						}
+						match.dumpMatchesPerl(out);
+					}
+				} finally {
+					out.indent = out.indent-1;
+				}
+				out.print("]");
+			}
+			out.print("}");
+		}
+	}
+	private String perltext(String s) {
+		StringBuffer sb = new StringBuffer();
+		for(int i=0;i<s.length();i++) {
+			char c = s.charAt(i);
+			if(c == '\\')
+				sb.append("\\\\");
+			else if(c == '"')
+				sb.append("\\\"");
+			else if(c == '\n')
+				sb.append("\\n");
+			else if(c == '\t')
+				sb.append("\\t");
+			else if(c == '\r')
+				sb.append("\\r");
+			else
+				sb.append(c);
+		}
+		return sb.toString();
+	}
+
 	public void dumpMatches() {
 		if(replacement != null) {
 			replacement.dumpMatches();

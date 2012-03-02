@@ -26,11 +26,14 @@ public class DebugVisitor extends Visitor {
 		out.print(": ");
 		out.indent += 2;
 		if(p instanceof Literal) {
-			printChar(((Literal)p).ch);
+			Literal ll = (Literal)p;
+			printChar(ll.ch);
 		} else if(p instanceof ILiteral) {
-			printChar(((ILiteral)p).lch);
+			ILiteral il = (ILiteral)p;
+			printChar(il.lch);
 		} else if(p instanceof Name) {
-			out.print(((Name)p).name);
+			Name nm = (Name)p;
+			out.print(nm.name);
 		} else if(p instanceof Range) {
 			Range r = (Range)p;
 			if(r.lo == r.hi)
@@ -47,9 +50,11 @@ public class DebugVisitor extends Visitor {
 			else
 				out.print(m.min+" to "+m.max);
 		} else if(p instanceof Lookup) {
-			out.print(((Lookup)p).lookup);
+			Lookup lo = (Lookup)p;
+			out.print(lo.lookup);
 		} else if(p instanceof Bracket) {
-			out.print("neg="+((Bracket)p).neg);
+			Bracket br = (Bracket)p;
+			out.print("neg="+br.neg);
 		}
 		out.println();
 		return this;

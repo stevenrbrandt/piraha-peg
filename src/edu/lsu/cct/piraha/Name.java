@@ -29,7 +29,7 @@ public class Name extends Pattern {
 	private boolean comp(Matcher m, Group match) {
 		if(!match.getPatternName().equals(name))
 			return false;
-		for(int i=0;;i++) {
+		for(int i=0;true;i++) {
 			if(i+match.getBegin() >= match.getEnd()) {
 				m.setTextPos(i+m.getTextPos());
 				return true;

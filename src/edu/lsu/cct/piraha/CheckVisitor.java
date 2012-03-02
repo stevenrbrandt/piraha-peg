@@ -30,20 +30,25 @@ public class CheckVisitor extends Visitor {
 	@Override
 	public Visitor startVisit(Pattern p) {
 		if(p instanceof Multi) {
-			CheckVisitor cv = child = new CheckVisitor(patterns);
+			CheckVisitor cv = new CheckVisitor(patterns);
+			child = cv;
 			cv.checking = checking;
 			return cv;
 		} else if(p instanceof Or) {
-			CheckVisitor cv = child = new CheckVisitor(patterns);
+			CheckVisitor cv = new CheckVisitor(patterns);
+			child = cv;
 			cv.checking = checking;
 			return cv;
 		} else if(p instanceof Seq) {
-			CheckVisitor cv = child = new CheckVisitor(patterns);
+			CheckVisitor cv = new CheckVisitor(patterns);
+			child = cv;
 			cv.checking = checking;
 			return cv;
 		} else if(p instanceof Lookup) {
-			CheckVisitor cv = child = new CheckVisitor(patterns);
-			cv.checking = ((Lookup)p).lookup;
+			CheckVisitor cv = new CheckVisitor(patterns);
+			child = cv;
+			Lookup ll = (Lookup)p;
+			cv.checking = ll.lookup;
 			return cv;
 		}
 		return this;

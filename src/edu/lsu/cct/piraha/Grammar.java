@@ -54,8 +54,13 @@ public class Grammar {
     	BufferedInputStream bin = new BufferedInputStream(in);
     	InputStreamReader isr = new InputStreamReader(bin);
     	int c=0;
-    	while((c = isr.read()) != -1)
+    	//while((c = isr.read()) != -1)
+    	while(true) {
+    		c = isr.read();
+    		if(c == -1)
+    			break;
     		sb.append((char)c);
+    	}
     	compileFile(sb.toString());
     }
     public void compileFile(String contents) throws IOException {
@@ -78,7 +83,7 @@ public class Grammar {
         for(Group match : pegMatcher.subMatches) {
         	Group value = match.group(0);
             String name = value.getPatternName();
-            if("name".equals(name)) {
+            if(comp("name",name)) {
             	//System.out.println("start: "+match.substring());
             	StringBuilder sb = new StringBuilder();
             	for(int i=1;i<match.groupCount();i++) {
@@ -89,19 +94,26 @@ public class Grammar {
             		}
             	}
             	compile(value.substring(),sb.toString());
-            } else if("import".equals(name)) {
-            	String impFile = match.group(1).substring();
-            	if(!new File(impFile).exists())
+            } else if(comp("import",name)) {
+            	File impFile = new File(match.group(1).substring());
+            	if(!impFile.exists())
             		throw new IOException("no such file "+impFile);
             	String impName = match.group(2).substring();
             	if(grammars == null || !grammars.containsKey(impName)) {
                 	Grammar subGrammar = new Grammar();
-                	subGrammar.compileFile(new File(impFile));
+                	subGrammar.compileFile(impFile);
                 	importGrammar(impName, subGrammar);
             	}
             }
         }
     }
+
+	static boolean comp(Object o1, Object o2) {
+		if(o1 == o2) return true;
+		if(o1 == null || o2 == null)
+			return false;
+		return o1.equals(o2);
+	}
 
 	public void diag(DebugOutput out) {
 		DebugVisitor dv = new DebugVisitor(out);
@@ -139,17 +151,9 @@ public class Grammar {
 	
 	public List<String> extras(String pat) {
 		List<String> extraPatterns = new ArrayList<String>();
-		final Map<String,Boolean> visited = new HashMap<String,Boolean>();
+		Map<String,Boolean> visited = new HashMap<String,Boolean>();
 		visited.put(pat,Boolean.FALSE);
-		Visitor extraFinder = new Visitor() {
-			public void finishVisit(Pattern p) {
-				if(p instanceof Lookup) {
-					String name = ((Lookup)p).lookup;
-					if(!visited.containsKey(name))
-						visited.put(name,Boolean.FALSE);
-				}
-			}
-		};
+		Visitor extraFinder = new ExtraVisitor(visited);
 		while(true) {
 			boolean done = true;
 			Set<String> set = new HashSet<String>();
@@ -211,8 +215,9 @@ public class Grammar {
 	public void addOps(String name, String finalExprPeg, String whitePeg, String[][] ops) {
 		String prev_name = name;
 		for(int i=0;i<ops.length;i++) {
-			String op_name = ops[i][0];
-			String op_pat = ops[i][1];
+			String[] opsi = ops[i];
+			String op_name = opsi[0];
+			String op_pat = opsi[1];
 			String pat_name = op_name+"_expr";
 			String pat_op_name = op_name+"_op";
 			String pat_expr = "{@"+pat_name+"}("+whitePeg+"{"+pat_op_name+"}"+whitePeg+"{@"+pat_name+"})*";

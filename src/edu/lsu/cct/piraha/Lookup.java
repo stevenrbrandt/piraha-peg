@@ -93,7 +93,11 @@ public class Lookup extends Pattern {
 
 	@Override
 	public String decompile() {
-		return (capture ? "{" : "{-")+lookup+"}";
+		if(capture) {
+			return "{"+lookup+"}";
+		} else {
+			return "{-"+lookup+"}";
+		}
 	}
 	@Override
 	public boolean eq(Object obj) {

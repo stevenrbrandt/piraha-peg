@@ -38,12 +38,12 @@ class Compiler {
 		this.i = i;
 		compile((char)0,false,false);
 	}
-	void compile(char term,final boolean ignCase,final boolean igcShow) {
+	void compile(char term,boolean ignCase,boolean igcShow) {
 		this.grammar.checked = false;
 		while(next(term,ignCase,igcShow))
 			;
 	}
-	boolean next(char term,final boolean ignCase,final boolean igcShow) {
+	boolean next(char term,boolean ignCase,boolean igcShow) {
 		if(i >= pattern.length()) {
 			if(term != 0)
 				throw new ParseException(""+term+" not found in "+patternName+":"+pattern);
@@ -90,8 +90,8 @@ class Compiler {
 				multi.pattern = patternList.remove(patternList.size()-1);
 				patternList.add(multi);
 			} else if(num && comma && !other) {
-				int n1 = sb1.length()==0 ? 0 : Integer.parseInt(sb1.toString());
-				int n2 = sb2.length()==0 ? Integer.MAX_VALUE : Integer.parseInt(sb2.toString());
+				int n1 = parseInt(sb1,0);//sb1.length()==0 ? 0 : Integer.parseInt(sb1.toString());
+				int n2 = parseInt(sb2,Integer.MAX_VALUE);//sb2.length()==0 ? Integer.MAX_VALUE : Integer.parseInt(sb2.toString());
 				if(n1 > n2)
 					throw new ParseException(""+n1+" > "+n2+" in pattern "+patternName);
 				Multi multi = new Multi(n1,n2);
@@ -233,6 +233,10 @@ class Compiler {
 			patternList.add(makeLiteral(c,ignCase));
 		}
 		return true;
+	}
+	int parseInt(StringBuffer sb1,int def) {
+		if(sb1.length()==0) return def;
+		else return Integer.parseInt(sb1.toString());
 	}
 	public Pattern mkSeq(List<Pattern> patternList,boolean ignCase,boolean igcShow) {
 		int n = patternList.size();
