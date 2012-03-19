@@ -163,6 +163,11 @@ public class Group implements Cloneable {
 			out.println(">");
 		}
 	}
+	public void dumpMatchesPython(String var,DebugOutput out) {
+		out.print(""+var+"=");
+		dumpMatchesPython(out);
+		out.println();
+	}
 	public void dumpMatchesPerl(String var,DebugOutput out) {
 		out.print("my $"+var+"=");
 		dumpMatchesPerl(out);
@@ -181,7 +186,7 @@ public class Group implements Cloneable {
 			out.print("'");
 			if(groupCount()==0) {
 				out.print(", text=>\"");
-				out.print(perltext(substring()));
+				out.print(esctext(substring()));
 				out.print('"');
 			} else {
 				out.print(", children=>[");
@@ -205,7 +210,44 @@ public class Group implements Cloneable {
 			out.print("}");
 		}
 	}
-	private String perltext(String s) {
+	public void dumpMatchesPython(DebugOutput out) {
+		if(replacement != null) {
+			replacement.dumpMatches(out);
+		} else {
+			out.print("{'name':'");
+			out.print(getPatternName());
+			out.print("', 'start':'");
+			out.print(begin);
+			out.print("', 'end':'");
+			out.print(end);
+			out.print("'");
+			if(groupCount()==0) {
+				out.print(", 'text':'");
+				out.print(esctext(substring()));
+				out.print("'");
+			} else {
+				out.print(", 'children':[");
+				out.println();
+				out.indent++;
+				try {
+					boolean first = true;
+					for(Group match : subMatches) {
+						if(first) {
+							first = false;
+						} else {
+							out.println(",");
+						}
+						match.dumpMatchesPython(out);
+					}
+				} finally {
+					out.indent = out.indent-1;
+				}
+				out.print("]");
+			}
+			out.print("}");
+		}
+	}
+	private String esctext(String s) {
 		StringBuffer sb = new StringBuffer();
 		for(int i=0;i<s.length();i++) {
 			char c = s.charAt(i);
@@ -213,6 +255,8 @@ public class Group implements Cloneable {
 				sb.append("\\\\");
 			else if(c == '"')
 				sb.append("\\\"");
+			else if(c == '\'')
+				sb.append("\\'");
 			else if(c == '\n')
 				sb.append("\\n");
 			else if(c == '\t')
