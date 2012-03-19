@@ -2,6 +2,7 @@ package edu.lsu.cct.piraha;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -197,12 +198,12 @@ public class Grammar {
 		if(!file.exists()) throw new IOException("File not found "+file);
 		int fileSize = (int)file.length();
 		if(fileSize == 0) return "";
-		char[] buf = new char[fileSize];
-		FileReader fr = new FileReader(file);
+		byte[] buf = new byte[fileSize];
+		FileInputStream fr = new FileInputStream(file);
 		int bytesRead = fr.read(buf,0,buf.length);
 		if(bytesRead <= 0)
 			throw new IOException("Could not read entire file: "+file);
-		return new String(buf);
+		return new String(buf,"utf8");
 	}
 
 	public Matcher matchFile(String fileName,String rule) throws IOException {
