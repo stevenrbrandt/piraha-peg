@@ -159,7 +159,7 @@ public class Group implements Cloneable {
 				}
 			}
 			out.print("</");
-			out.print(getPatternName());
+			out.print("node");
 			out.println(">");
 		}
 	}
