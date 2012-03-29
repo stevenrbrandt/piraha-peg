@@ -138,9 +138,9 @@ public class Group implements Cloneable {
 		if(replacement != null) {
 			replacement.dumpMatches(out);
 		} else {
-			out.print("<node name='");
+			out.print("<");
 			out.print(getPatternName());
-			out.print("' start='");
+			out.print(" start='");
 			out.print(begin);
 			out.print("' end='");
 			out.print(end);
@@ -159,7 +159,7 @@ public class Group implements Cloneable {
 				}
 			}
 			out.print("</");
-			out.print("node");
+			out.print(getPatternName());
 			out.println(">");
 		}
 	}
