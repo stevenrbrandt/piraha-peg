@@ -1,10 +1,12 @@
 package edu.lsu.cct.piraha;
 
+import java.util.Set;
+
 class Range extends Pattern {
 	char lo,hi;
-	Range(char lo,char hi) {
-		this.lo = lo;
-		this.hi = hi;
+	Range(int lo,int hi) {
+		this.lo = (char) lo;
+		this.hi = (char) hi;
 	}
 	@Override
 	public boolean match(Matcher m) {
@@ -21,6 +23,20 @@ class Range extends Pattern {
 	}
 	@Override
 	public boolean eq(Object obj) {
-		throw new RuntimeException();
+		if(obj instanceof Range) {
+			Range r = (Range)obj;
+			return r.lo == lo && r.hi == hi;
+		}
+		return false;
+	}
+	public Range overlap(Range rr) {
+		if(rr.hi+1 >= lo && rr.hi <= hi)
+			return new Range(Math.min(lo, rr.lo),Math.max(hi,rr.hi));
+		if(hi+1 >= rr.lo && hi <= rr.hi)
+			return new Range(Math.min(lo, rr.lo),Math.max(hi,rr.hi));
+		return null;
+	}
+	public String toString() {
+		return lo+"-"+hi;
 	}
 }
