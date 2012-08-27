@@ -1,6 +1,8 @@
 package edu.lsu.cct.piraha;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 
 public class Seq extends Pattern {
@@ -11,6 +13,11 @@ public class Seq extends Pattern {
 		this.patternList = pattern;
 		this.ignCase = ignCase;
 		this.igcShow = igcShow;
+	}
+	public Seq(boolean ignCase,boolean igcShow,Pattern...patterns) {
+		patternList = new ArrayList<Pattern>(patterns.length);
+		for(Pattern p : patterns)
+			patternList.add(p);
 	}
 
 	@Override

@@ -1,11 +1,17 @@
 package edu.lsu.cct.piraha;
 
 
+
 public class Multi extends Pattern {
 	final int min,max;
 	Pattern pattern;
 	
 	public Multi(int min,int max) {
+		this.min = min;
+		this.max = max;
+	}
+	public Multi(Pattern p,int min,int max) {
+		this.pattern = p;
 		this.min = min;
 		this.max = max;
 	}

@@ -3,7 +3,6 @@ package edu.lsu.cct.piraha;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -252,5 +251,13 @@ public class Grammar {
 			return m.group();
 		else
 			throw new MatchException(m.near().toString());
+	}
+
+	public Set<String> getPatternNames() {
+		return patterns.keySet();
+	}
+
+	public Pattern getPattern(String pat) {
+		return patterns.get(pat);
 	}
 }

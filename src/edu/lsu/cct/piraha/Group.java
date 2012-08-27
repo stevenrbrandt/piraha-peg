@@ -71,6 +71,13 @@ public class Group implements Cloneable {
 		subMatches.add(g);
 	}
 
+	public Group(String lookup, int b, int e, String text) {
+		this.patternName = lookup;
+		this.begin = b;
+		this.end = e;
+		this.text = text;
+	}
+
 	public Group group() {
 		if(replacement != null)
 			return replacement.group();
@@ -247,26 +254,30 @@ public class Group implements Cloneable {
 			out.print("}");
 		}
 	}
+	
 	private String esctext(String s) {
 		StringBuffer sb = new StringBuffer();
 		for(int i=0;i<s.length();i++) {
 			char c = s.charAt(i);
-			if(c == '\\')
-				sb.append("\\\\");
-			else if(c == '"')
-				sb.append("\\\"");
-			else if(c == '\'')
-				sb.append("\\'");
-			else if(c == '\n')
-				sb.append("\\n");
-			else if(c == '\t')
-				sb.append("\\t");
-			else if(c == '\r')
-				sb.append("\\r");
-			else
-				sb.append(c);
+			sb.append(escChar(c));
 		}
 		return sb.toString();
+	}
+	
+	public static String escChar(char c) {
+		if(c == '\\')
+			return "\\\\";
+		if(c == '\n')
+			return "\\n";
+		if(c == '\r')
+			return "\\r";
+		if(c == '\t')
+			return "\\t";
+		if(c == '"')
+			return "\\\"";
+		if(c == '\'')
+			return "\\'";
+		return Character.toString(c);
 	}
 
 	public void dumpMatches() {

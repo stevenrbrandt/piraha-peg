@@ -3,12 +3,21 @@ package edu.lsu.cct.piraha;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 public class Or extends Pattern {
-	List<Pattern> patterns = new ArrayList<Pattern>();
+	List<Pattern> patterns;
 	boolean ignCase,igcShow;
 	
 	public Or(boolean ignCase,boolean igcShow) {
+		patterns = new ArrayList<Pattern>();
+		this.ignCase = ignCase;
+		this.igcShow = igcShow;
+	}
+	public Or(boolean ignCase,boolean igcShow,Pattern...pats) {
+		patterns = new ArrayList<Pattern>(pats.length);
+		for(int i=0;i<pats.length;i++)
+			patterns.add(pats[i]);
 		this.ignCase = ignCase;
 		this.igcShow = igcShow;
 	}
