@@ -99,6 +99,9 @@ class Compiler {
 				patternList.add(multi);
 			} else {
 				String s = sb1.toString();
+                if(s.startsWith("{")) {
+                    throw new ParseException(pattern.substring(0,i)+"<-badly formed lookup in pattern "+patternName);
+                }
 				if(comma)
 					s += ',' + sb2.toString();
 				if(s.startsWith("$"))
@@ -178,6 +181,9 @@ class Compiler {
 			patternList.add(multi);
 		} else if(c == '+') {
 			Multi multi = new Multi(1,Integer.MAX_VALUE);
+            if(patternList.size() == 0) {
+                throw new ParseException(pattern.substring(0,i)+"<-bare + in pattern "+patternName);
+            }
 			multi.pattern = patternList.remove(patternList.size()-1);
 			patternList.add(multi);
 		} else if(c == '(') {
