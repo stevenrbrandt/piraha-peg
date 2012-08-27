@@ -80,7 +80,7 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 	}
 
 	@Override
-	public String decompile(Set<Pattern> names) {
+	public String decompile() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("[");
 		if(neg)
