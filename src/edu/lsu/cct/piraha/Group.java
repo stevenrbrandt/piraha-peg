@@ -366,4 +366,20 @@ public class Group implements Cloneable {
 		}
 		return null;
 	}
+	
+	public boolean equals(Object o) {
+		if(o instanceof Group) {
+			Group g = (Group)o;
+			if(g.begin != begin || g.end != end || g.groupCount() != groupCount())
+				return false;
+			if(!g.patternName.equals(patternName))
+				return false;
+			for(int j=0;j<groupCount();j++) {
+				if(!group(j).equals(g.group(j)))
+					return false;
+			}
+			return true;
+		}
+		return false;
+	}
 }

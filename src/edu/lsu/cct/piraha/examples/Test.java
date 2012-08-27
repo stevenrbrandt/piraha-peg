@@ -88,6 +88,19 @@ public class Test {
 		test("(?!foo)","foo",-1);
 		test("(?=foo)","foo",0);
 		test("(?=[^\\.]*\\.)","abcd.",0);
+		
+		{
+			System.out.println("CHECK");
+			Grammar g = new Grammar();
+			g.compile("name","[a-z]+");
+			g.compile("plus","{name}\\+");
+			g.compile("minus", "{name}-");
+			g.compile("all","{plus}|{minus}|{name}");
+			Matcher mm = g.matcher("foo*");
+			mm.matches();
+			assert(mm.substring().equals("foo"));
+		}
+		
 		try {
 			test("a**","a",1);
 			assert(false);

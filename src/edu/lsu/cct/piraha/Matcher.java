@@ -1,9 +1,11 @@
 package edu.lsu.cct.piraha;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 public class Matcher extends Group {
@@ -50,6 +52,7 @@ public class Matcher extends Group {
 		textPos = pos;
 		maxTextPos = pos;
 		savedMatches = new Stack<LinkedList<Group>>();
+		rats = new HashMap<PackRat, PackRat>();
 		subMatches = new LinkedList<Group>();
 		if(matchAll(pattern,this)) {
 			begin = pos;
@@ -144,21 +147,25 @@ public class Matcher extends Group {
 	public Pattern getPattern() {
 		return pattern;
 	}
-	/*
-	public static void main(String[] args) {
-		Grammar g = new Grammar();
-		g.compile("test","short");
-		Matcher m = g.matcher("test", "short short short");
-		m.startReplacement();
-		while(m.find()) {
-			m.appendReplacement("long");
-		}
-		String result = m.appendTail();
-		System.out.println(result);
-		System.out.println(m.mappings);
-		for(int i=0;i<m.text.length();i++) {
-			System.out.println(m.text.charAt(i)+" :> "+result.charAt(m.mapping(i)));
-		}
+	Map<PackRat,PackRat> rats;
+	
+	public PackRat find(String name,int pos) {
+		PackRat pr = new PackRat(name,pos);
+		PackRat res = rats.get(pr);
+		if(res == null)
+			return pr;
+		else
+			return res;
 	}
-	*/
+	
+	public void addPackRat(PackRat pr,boolean b, int after,
+			LinkedList<Group> subMatches) {
+		pr.matched = b;
+		if(b) {
+			pr.subMatches = subMatches;
+		}
+		pr.after = after;
+		pr.filled = true;
+		rats.put(pr, pr);
+	}
 }
