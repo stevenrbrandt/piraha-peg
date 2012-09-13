@@ -152,10 +152,13 @@ public class Matcher extends Group {
 	public PackRat find(String name,int pos) {
 		PackRat pr = new PackRat(name,pos);
 		PackRat res = rats.get(pr);
-		if(res == null)
+		if(res == null) {
+			rats.put(pr, pr);
 			return pr;
-		else
+		} else {
+			res.filled = true;
 			return res;
+		}
 	}
 	
 	public void addPackRat(PackRat pr,boolean b, int after,
@@ -165,7 +168,5 @@ public class Matcher extends Group {
 			pr.subMatches = subMatches;
 		}
 		pr.after = after;
-		pr.filled = true;
-		rats.put(pr, pr);
 	}
 }

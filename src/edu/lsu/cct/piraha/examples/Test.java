@@ -101,6 +101,16 @@ public class Test {
 			assert(mm.substring().equals("foo"));
 		}
 		
+		{
+			Grammar g = new Grammar();
+			g.compile("int","[0-9]+");
+			// Packrat allows this expression to match
+			g.compile("add", "{add}\\+{add}|{int}");
+			Matcher mm = g.matcher("9+20");
+			mm.matches();
+			assert(mm.group().substring().equals("9+20"));
+		}
+		
 		try {
 			test("a**","a",1);
 			assert(false);
