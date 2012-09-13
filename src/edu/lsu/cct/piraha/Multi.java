@@ -53,8 +53,8 @@ public class Multi extends Pattern {
 		if(min == 0 && max == 1)
 			return pattern.decompile()+"?";
 		if(max == Integer.MAX_VALUE)
-			return "{"+min+",}";
-		return "{"+min+","+max+"}";
+			return pattern.decompile()+"{"+min+",}";
+		return pattern.decompile()+"{"+min+","+max+"}";
 	}
 
 	@Override
