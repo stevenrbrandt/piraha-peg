@@ -1,8 +1,7 @@
 package edu.lsu.cct.piraha;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
+
 
 public class Lookup extends Pattern {
 	final Grammar g;
@@ -53,7 +52,7 @@ public class Lookup extends Pattern {
 	public boolean match(Matcher m) {
 		setup();
 		int before = m.getTextPos();
-		PackRat pr = m.find(fullName,before);
+		PackRat pr = m.find((capture ? "" : "-") + fullName,before);
 		if(pr.filled) {
 //			System.out.println("use: "+pr);
 			if(!pr.matched)
