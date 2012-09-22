@@ -1,9 +1,7 @@
 package edu.lsu.cct.piraha;
 
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 public class Bracket extends Pattern implements Comparable<Bracket> {
 	boolean neg;
@@ -14,6 +12,14 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 		this.neg = neg;
 	}
 	
+	void addRange(char lo,char hi,boolean ignCase) {
+		if(ignCase) {
+			addRange(Character.toLowerCase(lo), Character.toLowerCase(hi));
+			addRange(Character.toUpperCase(lo), Character.toUpperCase(hi));
+		} else {
+			addRange(lo,hi);
+		}
+	}
 	/**
 	 * Adds a range between lo and hi but will not create an overlap. 
 	 * @param lo
@@ -85,11 +91,14 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 		sb.append("[");
 		if(neg)
 			sb.append("^");
-		for(Range range : ranges) {
+		for(int i=0;i<ranges.size();i++) {
+			Range range = ranges.get(i);
 			if(range.lo != range.hi) {
 				outc(sb,range.lo);
 				sb.append("-");
 				outc(sb,range.hi);
+			} else if(i==0 || i+1 == ranges.size()) {
+				outc1(sb,range.lo);
 			} else {
 				outc(sb,range.lo);
 			}
@@ -98,6 +107,12 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 		return sb.toString();
 	}
 
+	private void outc1(StringBuffer sb, char c) {
+		if(c == ']') {
+			sb.append("\\");
+		}
+		sb.append(Literal.outc(c));
+	}
 	private void outc(StringBuffer sb, char c) {
 		if(c == '-' || c == ']') {
 			sb.append("\\");
