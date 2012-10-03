@@ -3,7 +3,6 @@ package edu.lsu.cct.piraha;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 public class Or extends Pattern {
 	List<Pattern> patterns;
@@ -13,6 +12,9 @@ public class Or extends Pattern {
 		patterns = new ArrayList<Pattern>();
 		this.ignCase = ignCase;
 		this.igcShow = igcShow;
+	}
+	public Or(Pattern...pats) {
+		this(false,false,pats);
 	}
 	public Or(boolean ignCase,boolean igcShow,Pattern...pats) {
 		patterns = new ArrayList<Pattern>(pats.length);
@@ -37,6 +39,29 @@ public class Or extends Pattern {
 			if(b)
 				return true;
 		}
+		// new version
+//		LinkedList<Group> save = m.subMatches;
+//		m.subMatches = new LinkedList<Group>();
+//		LinkedList<Group> best = m.subMatches;
+//		int bestPos = -1;
+//		for(int i=0;i<patterns.size();i++) {
+//			m.setTextPos(posSave);
+//			m.subMatches = new LinkedList<Group>();
+//			boolean b = Matcher.matchAll(patterns.get(i), m);
+//			if(b) {
+//				int np = m.getTextPos();
+//				if(np > bestPos) {
+//					best = m.subMatches;
+//					bestPos = np;
+//				}
+//			}
+//		}
+//		if(bestPos >= 0) {
+//			save.addAll(best);
+//			m.subMatches = save;
+//			m.setTextPos(bestPos);
+//			return true;
+//		}
 		return false;
 	}
 
@@ -53,6 +78,9 @@ public class Or extends Pattern {
 
 	@Override
 	public String decompile() {
+		if(!igcShow && patterns.size()==1) {
+			return patterns.get(0).decompile();
+		}
 		StringBuffer sb = new StringBuffer();
 		sb.append("(");
 		if (igcShow) {

@@ -14,6 +14,9 @@ public class Seq extends Pattern {
 		this.ignCase = ignCase;
 		this.igcShow = igcShow;
 	}
+	public Seq(Pattern...patterns) {
+		this(false,false,patterns);
+	}
 	public Seq(boolean ignCase,boolean igcShow,Pattern...patterns) {
 		patternList = new ArrayList<Pattern>(patterns.length);
 		for(Pattern p : patterns)
@@ -43,8 +46,8 @@ public class Seq extends Pattern {
 	@Override
 	public String decompile() {
 		StringBuffer sb = new StringBuffer();
-		sb.append("(");
 		if(igcShow) {
+			sb.append("(");
 			if(ignCase)
 				sb.append("?i:");
 			else
@@ -52,7 +55,8 @@ public class Seq extends Pattern {
 		}
 		for(Pattern x : patternList)
 			sb.append(x.decompile());
-		sb.append(")");
+		if(igcShow)
+			sb.append(")");
 		return sb.toString();
 	}
 

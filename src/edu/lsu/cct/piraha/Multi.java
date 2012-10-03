@@ -47,14 +47,29 @@ public class Multi extends Pattern {
 	@Override
 	public String decompile() {
 		if(min == 1 && max == Integer.MAX_VALUE)
-			return pattern.decompile()+"+";
+			return pre()+"+";
 		if(min == 0 && max == Integer.MAX_VALUE)
-			return pattern.decompile()+"*";
+			return pre()+"*";
 		if(min == 0 && max == 1)
-			return pattern.decompile()+"?";
+			return pre()+"?";
 		if(max == Integer.MAX_VALUE)
-			return pattern.decompile()+"{"+min+",}";
+			return pre()+"{"+min+",}";
+		if(min == max)
+			return pre()+"{"+min+"}";
 		return pattern.decompile()+"{"+min+","+max+"}";
+	}
+	
+	String pre() {
+		if(pattern instanceof Seq) {
+			Seq seq = (Seq)pattern;
+			if(!seq.igcShow)
+				return "("+pattern.decompile()+")";
+		} else if(pattern instanceof Or) {
+			Or or = (Or)pattern;
+			if(!or.igcShow)
+				return "("+pattern.decompile()+")";
+		}
+		return pattern.decompile();
 	}
 
 	@Override

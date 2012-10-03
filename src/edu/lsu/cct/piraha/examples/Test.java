@@ -19,7 +19,7 @@ public class Test {
 		Grammar g = new Grammar();
 		Pattern p = g.compile("d", pat);//"a(0|1|2|3|4|5|6a|7|8|9)*x");
 		String pdc = p.decompile();
-		Pattern pe;
+		Pattern pe = null;
 		DebugVisitor dv = new DebugVisitor();
 		try {
 			pe = g.compile("e",pdc);
@@ -61,7 +61,7 @@ public class Test {
 		if(!assertOn)
 			throw new RuntimeException("Assertions are not enabled");
 		
-		test("(\\[([^\\]])*)+","[",1);
+		test("(\\[[^\\]]*)+","[",1);
 		test("a(0|1|2|3|4|5|6a|7|8|9)*x","a6a72x",6);
 		test("a(0|1|2|3|4|5|6a|7|8|9)*x","a6a72",-1);
 		test("<{d}>|x","<<x>>",5);
@@ -84,7 +84,7 @@ public class Test {
 		test("[a-c]+","bbca",4);
 		test("(aaa|aa)aa$","aaaa",-1);
 		test("a*a","aaaa",-1);
-		test("\\b((?!apple\\b)[a-z]+)\\b","grape",5);
+		test("\\b(?!apple\\b)[a-z]+\\b","grape",5);
 		test("(?!foo)","foo",-1);
 		test("(?=foo)","foo",0);
 		test("(?=[^\\.]*\\.)","abcd.",0);
@@ -118,24 +118,29 @@ public class Test {
 			;
 		}
 
-		Grammar g = new Grammar();
+		Grammar g;
+		Matcher m;
+		g = new Grammar();
 		g.compile("x", "(?i:[xyz])");
 		g.compile("y","(?i:{x}a\\1)");
-		Matcher m = g.matcher("y", "Xax");
+		m = g.matcher("y", "Xax");
 		assert(m.find());
 		
 		// Check name matches
-		g = new Grammar();
-		g.compile("name", "[a-zA-Z_][a-zA-Z0-9_]*");
-		g.compile("block", "\\{ *((decl +{name} *;|use +{$name} *;|{block}) *)*\\}");
-		g.diag(DebugOutput.out);
-		m = g.matcher("block", "{decl b;{ decl a; use a;} {{use a;}}}");
+//		g = new Grammar();
+//		g.compile("name", "[a-zA-Z_][a-zA-Z0-9_]*");
+//		g.compile("block", "\\{ *((decl +{name} *;|use +{$name} *;|{block}) *)*\\}");
+//		g.diag(DebugOutput.out);
+//		m = g.matcher("block", "{decl b;{ decl a; use a;} {{use a;}}}");
 		//assert(m.matches());
 		
 		Grammar xml = new Grammar();
 		xml.compileFile(Test.class.getResourceAsStream("xml.peg"));
-		m = xml.matcher("tag","<a><b><c/></b></a>");
-		assert(m.matches());
+		m = xml.matcher("doc","<a><b><c/></b></a>");
+		if(!m.matches()) {
+			System.out.println(m.near());
+			assert(false);
+		}
 		
 		// Test composabality
 		g = new Grammar();
@@ -152,10 +157,12 @@ public class Test {
 		test("[\\a\\-]+","a-a-",4);
 		test("[a\\-]+","a-a-",4);
 		test("[-a]+","a-a-",4);
-		test("(\\[(\\\\[^]|[^\\]\\\\])*\\]|\\\\[^]|[^ \t\r\n\b])+","xxx",3);
+		test("\\[a\\]","[a]",3);
+		test("(\\[(\\\\[^]|[^\\]\\\\])*\\]|\\\\[^]|[^\b-\n\r ])+","xxx",3);
 		test("[a-zA-Z0-9\\.\\*]+|\"[^\"]*\"|'[^']*'","\"Failed password\"",17);
 		test("(b{brk}|.)*","aaabaaa",4);
 		test("[^ \t\r\n\b]+","abc",3);
+		test("(?i:ab(c|g)ef)","ABCEF",5);
 		
 		g = new Grammar();
 		g.compile("import", "import");

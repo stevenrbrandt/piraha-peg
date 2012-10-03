@@ -17,6 +17,7 @@ public class Grammar {
 	Map<String,Pattern> patterns = new HashMap<String,Pattern>();
 	Map<String,Grammar> grammars = null;
 	String lastCompiled;
+	
 	public void importGrammar(String name,Grammar g) {
 		if(grammars == null) {
 			grammars = new HashMap<String,Grammar>();
@@ -32,10 +33,8 @@ public class Grammar {
 			throw new ParseException("Illegal character ':' in pattern name");
 		if(patterns.containsKey(name))
 			throw new ParseException("Rule '"+name+"' is already defined.");
-		//System.out.print("compile: "+name+" = "+pattern);
-		//System.out.println();
-		Compiler c = new Compiler(this, name,pattern);
-		Pattern pat = c.getPattern(false,false);
+		Pattern pat = null;
+		pat = new ReParse().compile(pattern,this);
 		patterns.put(name, pat);
 		lastCompiled = name;
 		return pat;
@@ -64,47 +63,21 @@ public class Grammar {
     	compileFile(sb.toString());
     }
     public void compileFile(String contents) throws IOException {
-        Grammar pegRules = new Grammar();
-        pegRules.compile("name","[a-zA-Z0-9_:]+");
-        pegRules.compile("import", "import");
-        pegRules.compile("filename","[^\"]+");//"\\\\[^]|[^\\\\\"]+");
-        pegRules.compile("regex","((?!\n{name}white}=|{import}{-white}\"{filename}\"{-white}as\\b{-white}{name})(\\[(\\\\[^]|[^\\]\\\\])*\\]|\\\\[^]|[^ \t\r\n\b]))+");
-        pegRules.compile("white","([ \t\r\b]|\n(?=[\n#])|\n[ \t\r\b]|#[^\n]*)*");
-        //pegRules.compile("white","([ \t\r\b\n]|#[^\n]*)*");
-        pegRules.compile("rule","({name}{-white}={-white}({regex}{-white})*"+/*|{import}{-white}\"{filename}\"{-white}as\\b{-white}{name}*/")");
-        pegRules.compile("rules","^{-white}((^|\n){rule})*[ \t\r\n]*$");
-        Matcher pegMatcher = pegRules.matcher("rules", contents);
+    	Grammar pegRules = AutoGrammar.fileparser;
+    	Matcher pegMatcher = pegRules.matcher("file",contents);
         if(!pegMatcher.matches()) {
             throw new ParseException("Syntax error near line "+pegMatcher.near()+" : "+
                     pegMatcher.text.substring(0,pegMatcher.maxTextPos)+">|<"+
                     pegMatcher.text.substring(pegMatcher.maxTextPos));
         }
-        //pegMatcher.dumpMatches();
-        for(Group match : pegMatcher.subMatches) {
-        	Group value = match.group(0);
-            String name = value.getPatternName();
-            if(comp("name",name)) {
-            	//System.out.println("start: "+match.substring());
-            	StringBuilder sb = new StringBuilder();
-            	for(int i=1;i<match.groupCount();i++) {
-            		if(i > 1) sb.append("{-skipper}");
-            		if(true) {//match.getPatternName().equals("regex")) {
-            			//System.out.println("  "+match.getPatternName()+": "+match.getMatch(i).substring());
-            			sb.append(match.group(i).substring());
-            		}
-            	}
-            	compile(value.substring(),sb.toString());
-            } else if(comp("import",name)) {
-            	File impFile = new File(match.group(1).substring());
-            	if(!impFile.exists())
-            		throw new IOException("no such file "+impFile);
-            	String impName = match.group(2).substring();
-            	if(grammars == null || !grammars.containsKey(impName)) {
-                	Grammar subGrammar = new Grammar();
-                	subGrammar.compileFile(impFile);
-                	importGrammar(impName, subGrammar);
-            	}
-            }
+        for(int i=0;i<pegMatcher.groupCount();i++) {
+        	Group rule = pegMatcher.group(i);
+    		Pattern ptmp = new ReParse().compile(rule.group(1), false, this);
+    		lastCompiled = rule.group(0).substring();
+    		patterns.put(lastCompiled,ptmp);
+    		if(lastCompiled.equals("access")) {
+    			rule.dumpMatches();
+    		}
         }
     }
 
@@ -118,7 +91,7 @@ public class Grammar {
 	public void diag(DebugOutput out) {
 		DebugVisitor dv = new DebugVisitor(out);
 		for(Map.Entry<String, Pattern> entry : patterns.entrySet()) {
-			out.println(entry.getKey()+" => ");
+			out.println(entry.getKey()+" => "+entry.getValue().decompile());
 			dv.out.indent+=2;
 			entry.getValue().visit(dv);
 			dv.out.indent-=2;
@@ -200,6 +173,7 @@ public class Grammar {
 		byte[] buf = new byte[fileSize];
 		FileInputStream fr = new FileInputStream(file);
 		int bytesRead = fr.read(buf,0,buf.length);
+		fr.close();
 		if(bytesRead <= 0)
 			throw new IOException("Could not read entire file: "+file);
 		return new String(buf,"utf8");

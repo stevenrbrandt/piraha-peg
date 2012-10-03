@@ -31,7 +31,6 @@ public class Generic {
 			n++;
 		}
 		String grammarFile = args[n++];
-		System.out.println("Grammar file: "+grammarFile);
 		if(!grammarFile.endsWith(".peg"))
 			usage();
 		g.compileFile(new File(grammarFile));
