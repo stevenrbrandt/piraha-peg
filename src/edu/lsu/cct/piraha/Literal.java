@@ -1,7 +1,7 @@
 package edu.lsu.cct.piraha;
 
 public class Literal extends Pattern {
-	final static String SPECIAL = "*{}[+?()^$|.\\";
+	final static String SPECIAL = "*{}[]+?()^$|.\\";
 	char ch;
 	public Literal(int val) {
 		this.ch = (char) val;
