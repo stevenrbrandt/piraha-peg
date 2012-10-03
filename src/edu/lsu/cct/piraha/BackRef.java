@@ -48,7 +48,7 @@ public class BackRef extends Pattern {
 
 	@Override
 	public String decompile() {
-		return "\\"+num;
+		return "\\"+(1+num);
 	}
 
 	@Override
