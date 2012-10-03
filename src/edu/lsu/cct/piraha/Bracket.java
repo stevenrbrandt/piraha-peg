@@ -108,13 +108,10 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 	}
 
 	private void outc1(StringBuffer sb, char c) {
-		if(c == ']') {
-			sb.append("\\");
-		}
 		sb.append(Literal.outc(c));
 	}
 	private void outc(StringBuffer sb, char c) {
-		if(c == '-' || c == ']') {
+		if(c == '-') {
 			sb.append("\\");
 		}
 		sb.append(Literal.outc(c));
