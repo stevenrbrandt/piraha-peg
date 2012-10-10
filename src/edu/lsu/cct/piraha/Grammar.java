@@ -75,9 +75,6 @@ public class Grammar {
     		Pattern ptmp = new ReParse().compile(rule.group(1), false, this);
     		lastCompiled = rule.group(0).substring();
     		patterns.put(lastCompiled,ptmp);
-    		if(lastCompiled.equals("access")) {
-    			rule.dumpMatches();
-    		}
         }
     }
 
