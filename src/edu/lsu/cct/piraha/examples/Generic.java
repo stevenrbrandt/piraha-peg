@@ -20,6 +20,8 @@ public class Generic {
 			usage();
 		Grammar g = new Grammar();
 		int n = 0;
+		int count = 0;
+		boolean checkOnly = false;
 		String suffix = ".pegout";
 		while(args[n].startsWith("--")) {
 			if(args[n].equals("--python"))
@@ -28,6 +30,8 @@ public class Generic {
 				suffix = ".pm";
 			else if(args[n].equals("--xml"))
 				suffix = ".xml";
+			else if(args[n].equals("--check-only"))
+				checkOnly = true;
 			n++;
 		}
 		String grammarFile = args[n++];
@@ -39,30 +43,37 @@ public class Generic {
 			int nn = args[n].lastIndexOf('.');
 			if(nn >= 0) s = s.substring(0,nn);
 			s = s+suffix;
-			System.out.println("reading file: "+args[n]);
-			System.out.println("writing file: "+s);
+			if(!checkOnly) {
+				System.out.println("reading file: "+args[n]);
+				System.out.println("writing file: "+s);
+			}
 			if(s.equals(args[n])) throw new IOException("won't over-write input file "+args[n]);
 			if(s.equals(grammarFile)) throw new IOException("won't over-write grammar file "+grammarFile);
 			Matcher m = g.matcher(Grammar.readContents(new File(args[n])));
 			if(m.match(0)) {
-				FileWriter fw = new FileWriter(s);
-				BufferedWriter bw = new BufferedWriter(fw);
-				PrintWriter pw = new PrintWriter(bw);
-				DebugOutput dout = new DebugOutput(pw);
-				if(suffix.equals(".py"))
-					m.dumpMatchesPython("VAR",dout);
-				else if(suffix.equals(".pm"))
-					m.dumpMatchesPerl("my $VAR",dout);
-				else if(suffix.equals(".xml"))
-					m.dumpMatchesXML(dout);
-				else if(suffix.equals(".pegout"))
-					m.dumpMatches(dout);
-				dout.flush();
-				pw.close();
+				count++;
+				if(!checkOnly) {
+					FileWriter fw = new FileWriter(s);
+					BufferedWriter bw = new BufferedWriter(fw);
+					PrintWriter pw = new PrintWriter(bw);
+					DebugOutput dout = new DebugOutput(pw);
+					if(suffix.equals(".py"))
+						m.dumpMatchesPython("VAR",dout);
+					else if(suffix.equals(".pm"))
+						m.dumpMatchesPerl("my $VAR",dout);
+					else if(suffix.equals(".xml"))
+						m.dumpMatchesXML(dout);
+					else if(suffix.equals(".pegout"))
+						m.dumpMatches(dout);
+					dout.flush();
+					pw.close();
+				}
 			} else {
-				System.err.println("In file["+n+"] "+args[n]+" "+m.near());
-				break;
+				System.err.println("FAILED:  grammar=["+grammarFile+"] file=["+args[n]+"]: "+" "+m.near());
+				System.exit(2);
 			}
 		}
+		System.out.println("SUCCESS: files-checked=["+count+"] grammar=["+grammarFile+"]");
+		System.exit(0);
 	}
 }
