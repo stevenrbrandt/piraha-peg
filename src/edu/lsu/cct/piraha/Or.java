@@ -39,7 +39,7 @@ public class Or extends Pattern {
 			boolean b = Matcher.matchAll(patterns.get(i),m);
 			if(b)
 				return true;
-			else
+			else if(m.expected != null)
 				expecteds.add(m.expected);
 		}
 		int max = -1;
