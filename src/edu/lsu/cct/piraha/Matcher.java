@@ -42,6 +42,7 @@ public class Matcher extends Group {
 		if(newTextPos > maxTextPos) {
 			maxTextPos = newTextPos;
 			maxLookup = lookStack.toString();
+			expected = null;
 		}
 		textPos = newTextPos;
 	}
@@ -49,6 +50,7 @@ public class Matcher extends Group {
 		setTextPos(getTextPos()+incr);
 	}
 	public boolean match(int pos) {
+		expected = null;
 		textPos = pos;
 		maxTextPos = pos;
 		savedMatches = new Stack<LinkedList<Group>>();
@@ -90,6 +92,7 @@ public class Matcher extends Group {
 		Near near = new Near();
 		near.text = text;
 		near.rule = maxLookup;
+		near.expected = expected;
 		for(int i=0;i<text.length() && i<maxTextPos;i++) {
 			if(text.charAt(i)=='\n') {
 				near.lineNum++;
@@ -168,5 +171,14 @@ public class Matcher extends Group {
 			pr.subMatches = subMatches;
 		}
 		pr.after = after;
+	}
+	
+	Expected expected;
+	public void expected(Expected ex) {
+		if(textPos == maxTextPos || ex.epos == maxTextPos) {
+			ex.build(maxTextPos);
+			if(ex.possibilities.size()>0)
+				expected = ex;
+		}
 	}
 }

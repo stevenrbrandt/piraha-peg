@@ -1,5 +1,6 @@
 package edu.lsu.cct.piraha;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -69,11 +70,17 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 			if(range.lo <= c && c <= range.hi) {
 				if(!neg)
 					m.incrTextPos(1);
+				if(!neg^true) {
+					m.expected(new Expected(this));
+				}
 				return neg^true;
 			}
 		}
 		if(neg)
 			m.incrTextPos(1);
+		if(!neg^false) {
+			m.expected(new Expected(this));
+		}
 		return neg^false;
 	}
 	
@@ -227,5 +234,12 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 	@Override
 	public int compareTo(Bracket b) {
 		return hashCode() - b.hashCode();
+	}
+	
+	@Override
+	public List<String> expected(int n) {
+		List<String> ex = new ArrayList<String>();
+		ex.add(decompile());
+		return ex;
 	}
 }

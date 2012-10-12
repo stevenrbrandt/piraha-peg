@@ -28,6 +28,7 @@ public class Or extends Pattern {
 	public boolean match(Matcher m) {
 		int posSave = m.getTextPos();
 		int sz = m.subMatches.size();
+		List<Expected> expecteds = new ArrayList<Expected>();
 		for(int i=0;i<patterns.size();i++) {
 			m.setTextPos(posSave);
 			int nsz = m.subMatches.size();
@@ -38,7 +39,25 @@ public class Or extends Pattern {
 			boolean b = Matcher.matchAll(patterns.get(i),m);
 			if(b)
 				return true;
+			else
+				expecteds.add(m.expected);
 		}
+		int max = -1;
+		for(Expected e : expecteds) {
+			if(e.pos > max && e.possibilities.size()>0) {
+				max = e.pos;
+			}
+		}
+		Expected ex = new Expected();
+		ex.epos = max;
+		for(Expected e : expecteds) {
+			if(e.pos == max) {
+				for(String s : e.possibilities) {
+					ex.possibilities.add(s);
+				}
+			}
+		}
+		m.expected(ex);
 		// new version
 //		LinkedList<Group> save = m.subMatches;
 //		m.subMatches = new LinkedList<Group>();
@@ -107,5 +126,16 @@ public class Or extends Pattern {
 				return false;
 		}
 		return true;
+	}
+	
+	@Override
+	public List<String> expected(int n) {
+		List<String> ex = new ArrayList<String>();
+		for(int i=0;i<patterns.size();i++) {
+			List<String> li = patterns.get(i).expected(0);
+			for(String s : li)
+				ex.add(s);
+		}
+		return ex;
 	}
 }

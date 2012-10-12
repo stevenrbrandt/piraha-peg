@@ -1,6 +1,8 @@
 package edu.lsu.cct.piraha;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 
 public class Lookup extends Pattern {
@@ -105,5 +107,11 @@ public class Lookup extends Pattern {
 	public boolean eq(Object obj) {
 		Lookup lh = (Lookup)obj;
 		return lookup.equals(lh.lookup) && capture == lh.capture;
+	}
+	
+	@Override
+	public List<String> expected(int n) {
+		setup();
+		return pattern.expected(n);
 	}
 }

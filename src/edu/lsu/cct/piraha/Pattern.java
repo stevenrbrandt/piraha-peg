@@ -1,5 +1,8 @@
 package edu.lsu.cct.piraha;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class Pattern {
 	public abstract boolean match(Matcher m);
 
@@ -19,4 +22,6 @@ public abstract class Pattern {
 		}
 		return false;
 	}
+	
+	public List<String> expected(int n) { return new ArrayList<String>(); }
 }

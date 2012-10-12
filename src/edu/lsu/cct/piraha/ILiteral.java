@@ -1,5 +1,8 @@
 package edu.lsu.cct.piraha;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ILiteral extends Pattern {
 	char lch,uch;
 	public ILiteral(int val) {
@@ -16,6 +19,7 @@ public class ILiteral extends Pattern {
 				return true;
 			}
 		}
+		m.expected(new Expected(this));
 		return false;
 	}
 	@Override
@@ -26,5 +30,12 @@ public class ILiteral extends Pattern {
 	public boolean eq(Object obj) {
 		ILiteral ilit = (ILiteral)obj;
 		return ilit.lch == lch && ilit.uch == uch;
+	}
+	
+	@Override
+	public List<String> expected(int n) {
+		List<String> ex = new ArrayList<String>();
+		ex.add(decompile());
+		return ex;
 	}
 }

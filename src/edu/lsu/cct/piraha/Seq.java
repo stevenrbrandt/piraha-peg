@@ -26,10 +26,13 @@ public class Seq extends Pattern {
 	@Override
 	public boolean match(Matcher m) {
 		//for(Pattern x = pattern;x != null;x = x.next) {
-		for(Pattern x : patternList) {
+		for(int i=0;i<patternList.size();i++) {
+			Pattern x = patternList.get(i);
 			boolean b = x.match(m);
-			if(!b)
+			if(!b) {
+				m.expected(new Expected(this,i));
 				return false;
+			}
 		}
 		return true;
 	}
@@ -70,5 +73,21 @@ public class Seq extends Pattern {
 				return false;
 		}
 		return true;
+	}
+	
+	@Override
+	public List<String> expected(int n) {
+		List<String> ex = new ArrayList<String>();
+		for(int i=n;i<patternList.size();i++) {
+			List<String> nex = new ArrayList<String>();
+			List<String> li = patternList.get(i).expected(0);
+			for(int j=0;j<li.size();j++) {
+				for(int k=0;k<ex.size();k++) {
+					nex.add(ex.get(k)+li.get(j));
+				}
+			}
+			ex = nex;
+		}
+		return ex;
 	}
 }
