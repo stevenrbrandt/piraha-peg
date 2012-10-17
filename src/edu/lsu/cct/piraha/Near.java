@@ -4,7 +4,7 @@ package edu.lsu.cct.piraha;
 public class Near {
 	String text,rule;
 	Expected expected;
-	int lineNum=1, posInLine, startOfLine, endOfLine;
+	public int lineNum=1, posInLine, startOfLine, endOfLine;
 	Near() {}
 	public String toString() {
 		String line = text.substring(startOfLine,endOfLine);
