@@ -2,10 +2,10 @@ package edu.lsu.cct.piraha;
 
 
 public class Near {
-	String text,rule;
-	Expected expected;
+	public String text,rule;
+	public Expected expected;
 	public int lineNum=1, posInLine, startOfLine, endOfLine;
-	Near() {}
+	public Near() {}
 	public String toString() {
 		String line = text.substring(startOfLine,endOfLine);
 		String str = line.substring(0,posInLine)+"|"+line.substring(posInLine);
