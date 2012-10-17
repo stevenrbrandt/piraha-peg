@@ -151,6 +151,8 @@ public class Group implements Cloneable {
 			out.print(begin);
 			out.print("' end='");
 			out.print(end);
+			out.print("' line='");
+			out.print(getLineNum());
 			out.print("'>");
 			if(groupCount()==0) {
 				out.print(xmltext(substring()));
@@ -170,13 +172,21 @@ public class Group implements Cloneable {
 			out.println(">");
 		}
 	}
+	private int getLineNum() {
+		int num = 1;
+		for(int i=0;i<begin;i++)
+			if(text.charAt(i)=='\n')
+				num++;
+		return num;
+	}
+
 	public void dumpMatchesPython(String var,DebugOutput out) {
 		out.print(""+var+"=");
 		dumpMatchesPython(out);
 		out.println();
 	}
 	public void dumpMatchesPerl(String var,DebugOutput out) {
-		out.print("my $"+var+"=");
+		out.print(var+"=");
 		dumpMatchesPerl(out);
 		out.println(";");
 	}
@@ -190,6 +200,8 @@ public class Group implements Cloneable {
 			out.print(begin);
 			out.print("', end=>'");
 			out.print(end);
+			out.print("', line=>'");
+			out.print(getLineNum());
 			out.print("'");
 			if(groupCount()==0) {
 				out.print(", text=>\"");
@@ -227,6 +239,8 @@ public class Group implements Cloneable {
 			out.print(begin);
 			out.print("', 'end':'");
 			out.print(end);
+			out.print("', 'line':'");
+			out.print(getLineNum());
 			out.print("'");
 			if(groupCount()==0) {
 				out.print(", 'text':'");

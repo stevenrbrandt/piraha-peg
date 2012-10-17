@@ -60,7 +60,7 @@ public class Generic {
 					if(suffix.equals(".py"))
 						m.dumpMatchesPython("VAR",dout);
 					else if(suffix.equals(".pm"))
-						m.dumpMatchesPerl("my $VAR",dout);
+						m.dumpMatchesPerl("$VAR",dout);
 					else if(suffix.equals(".xml"))
 						m.dumpMatchesXML(dout);
 					else if(suffix.equals(".pegout"))
