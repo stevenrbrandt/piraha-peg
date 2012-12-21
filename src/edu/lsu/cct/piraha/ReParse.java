@@ -319,7 +319,7 @@ public class ReParse {
 	public Pattern compile(String s,Grammar gram) {
 		Matcher m = g.matcher("pattern",s);
 		if(m.matches()) {
-			m.dumpMatches();
+//			m.dumpMatches();
 			return compile(m.group(),false,gram);
 		} else {
 			throw new ParseException(m.near().toString());
