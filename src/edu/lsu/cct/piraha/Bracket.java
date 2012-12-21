@@ -242,4 +242,8 @@ public class Bracket extends Pattern implements Comparable<Bracket> {
 		ex.add(decompile());
 		return ex;
 	}
+	
+	public String toString() {
+		return decompile();
+	}
 }
