@@ -23,9 +23,9 @@ public class Calc {
 		// parenthesis.
 		// Note: The start of "expr" should not be {expr}
 		// because that leads to infinite recursion.
-		math.compile("expr", "{mulexp}({addop}{mulexp})*");
 		math.compile("mulexp", "{powexp}({mulop}{powexp})*");
 		math.compile("powexp", "{num}({powop}{num})*|\\({expr}\\)");
+		math.compile("expr", "{mulexp}({addop}{mulexp})*");
 
 		return math;
 	}
