@@ -163,6 +163,7 @@ public class Test {
 		test("(b{brk}|.)*","aaabaaa",4);
 		test("[^ \t\r\n\b]+","abc",3);
 		test("(?i:ab(c|g)ef)","ABCEF",5);
+		test("[0-67-9]+","1234",4);
 		
 		g = new Grammar();
 		g.compile("import", "import");

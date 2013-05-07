@@ -4,11 +4,11 @@ package edu.lsu.cct.piraha;
 public class Near {
 	public String text,rule;
 	public Expected expected;
-	public int lineNum=1, posInLine, startOfLine, endOfLine;
+	public int lineNum=1, pos, startOfLine, endOfLine;
 	public Near() {}
 	public String toString() {
 		String line = text.substring(startOfLine,endOfLine);
-		String str = line.substring(0,posInLine)+"|"+line.substring(posInLine);
+		String str = line.substring(0,pos)+"|"+line.substring(pos);
 		String base = "";
 		if(expected != null) {
 			if(expected.possibilities.size()==1) {

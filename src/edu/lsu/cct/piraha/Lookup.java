@@ -1,6 +1,5 @@
 package edu.lsu.cct.piraha;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -65,7 +64,7 @@ public class Lookup extends Pattern {
 		}
 		m.savedMatches.push(m.subMatches);
 		m.subMatches = new LinkedList<Group>();
-		//String lookupSave = m.lookup;
+		//String lookupSave = m.lookup
 		m.lookStack.push(lookup);
 		try {
 			m.lookup = fullName;

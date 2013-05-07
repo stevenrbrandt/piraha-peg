@@ -99,7 +99,7 @@ public class Matcher extends Group {
 				near.startOfLine = i;
 			}
 		}
-		near.posInLine = maxTextPos - near.startOfLine;
+		near.pos = maxTextPos - near.startOfLine;
 		near.endOfLine = maxTextPos;
 		for(; near.endOfLine < text.length();near.endOfLine++)
 			if(text.charAt(near.endOfLine) == '\n')

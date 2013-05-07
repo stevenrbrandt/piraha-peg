@@ -99,7 +99,7 @@ public class Group implements Cloneable {
 				near.startOfLine = i;
 			}
 		}
-		near.posInLine = begin - near.startOfLine;
+		near.pos = begin - near.startOfLine;
 		near.endOfLine = begin;
 		//for(near.endOfLine = begin; near.endOfLine < text.length();near.endOfLine++)
 		for(int n = begin;n < text.length();n++) {
@@ -395,5 +395,14 @@ public class Group implements Cloneable {
 			return true;
 		}
 		return false;
+	}
+
+	public int getLine() {
+		int n = 1;
+		for(int i=0;i<begin;i++) {
+			if(text.charAt(i)=='\n')
+				n++;
+		}
+		return n;
 	}
 }
