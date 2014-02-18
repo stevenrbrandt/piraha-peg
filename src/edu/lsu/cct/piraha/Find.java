@@ -3,7 +3,7 @@ package edu.lsu.cct.piraha;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.lsu.cct.piraha.examples.Calc;
+//import edu.lsu.cct.piraha.examples.Calc;
 
 public class Find {
 	static Grammar g = new Grammar();
@@ -146,6 +146,7 @@ public class Find {
     public static void check(boolean b) {
     	if(!b) throw new Error();
     }
+    /*
 	public static void main(String[] args) {
 		Grammar tg = Calc.makeMath();
 		Matcher mg = tg.matcher("3+9*(1+9)-4");
@@ -167,5 +168,6 @@ public class Find {
 		
 		System.out.println("test complete");
 	}
+    */
 }
 
