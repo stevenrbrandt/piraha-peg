@@ -142,6 +142,15 @@ public class Group implements Cloneable {
 		}
 	}
 	public void dumpMatchesXML(DebugOutput out) {
+		dumpMatchesXML(out,false);
+	}
+	/**
+	 * If showText is true, then a complete copy of the input
+	 * will be present inside a <text></text> element in the root node.
+	 * @param out
+	 * @param showText
+	 */
+	public void dumpMatchesXML(DebugOutput out,boolean showText) {
 		if(replacement != null) {
 			replacement.dumpMatches(out);
 		} else {
@@ -155,7 +164,7 @@ public class Group implements Cloneable {
 			out.print(getLineNum());
 			out.print("'>");
 			if(groupCount()==0) {
-				out.print(xmltext(substring()));
+				out.print(xmlText(substring()));
 			} else {
 				out.println();
 				out.indent++;
@@ -166,6 +175,11 @@ public class Group implements Cloneable {
 				} finally {
 					out.indent--;
 				}
+			}
+			if(showText) {
+				out.print("<text>");
+				out.print(xmlText(substring()));
+				out.println("</text>");
 			}
 			out.print("</");
 			out.print(getPatternName());
@@ -205,7 +219,7 @@ public class Group implements Cloneable {
 			out.print("'");
 			if(groupCount()==0) {
 				out.print(", text=>\"");
-				out.print(esctext(substring()));
+				out.print(escText(substring()));
 				out.print('"');
 			} else {
 				out.print(", children=>[");
@@ -244,7 +258,7 @@ public class Group implements Cloneable {
 			out.print("'");
 			if(groupCount()==0) {
 				out.print(", 'text':'");
-				out.print(esctext(substring()));
+				out.print(escText(substring()));
 				out.print("'");
 			} else {
 				out.print(", 'children':[");
@@ -269,7 +283,7 @@ public class Group implements Cloneable {
 		}
 	}
 	
-	private String esctext(String s) {
+	public String escText(String s) {
 		StringBuffer sb = new StringBuffer();
 		for(int i=0;i<s.length();i++) {
 			char c = s.charAt(i);
@@ -291,7 +305,15 @@ public class Group implements Cloneable {
 			return "\\\"";
 		if(c == '\'')
 			return "\\'";
-		return Character.toString(c);
+		if(c == '$')
+			return "\\$";
+		if(c == '@')
+			return "\\@";
+		if(c == '%')
+			return "\\%";
+		if(c >= ' ' && c <= '~')
+			return Character.toString(c);
+		return "\\x"+Integer.toHexString(c);
 	}
 
 	public void dumpMatches() {
@@ -328,7 +350,7 @@ public class Group implements Cloneable {
 			}
 		}
 	}
-	private static String xmltext(String str) {
+	private static String xmlText(String str) {
 		StringBuffer sb = new StringBuffer();
 		for(int i=0;i<str.length();i++) {
 			char c = str.charAt(i);
