@@ -39,32 +39,47 @@ public class Generic {
 			usage();
 		g.compileFile(new File(grammarFile));
 		for(;n<args.length;n++) {
-			String s = args[n];
+			String outputFile = args[n];
 			int nn = args[n].lastIndexOf('.');
-			if(nn >= 0) s = s.substring(0,nn);
-			s = s+suffix;
+			if(nn >= 0) outputFile = outputFile.substring(0,nn);
+			outputFile = outputFile+suffix;
 			if(!checkOnly) {
 				System.out.println("reading file: "+args[n]);
-				System.out.println("writing file: "+s);
+				System.out.println("writing file: "+outputFile);
+				
+				long inMtime = new File(args[n]).lastModified();
+				long outMtime = new File(outputFile).lastModified();
+				long pegMtime = new File(grammarFile).lastModified();
+				
+				boolean olderThanSource = inMtime < outMtime;
+				boolean olderThanPeg    = pegMtime < outMtime;
+				
+				if(olderThanPeg && olderThanSource) {
+					System.out.println(" ---> Up to date");
+					System.exit(0);
+				}
 			}
-			if(s.equals(args[n])) throw new IOException("won't over-write input file "+args[n]);
-			if(s.equals(grammarFile)) throw new IOException("won't over-write grammar file "+grammarFile);
+			if(outputFile.equals(args[n])) throw new IOException("won't over-write input file "+args[n]);
+			if(outputFile.equals(grammarFile)) throw new IOException("won't over-write grammar file "+grammarFile);
 			Matcher m = g.matcher(Grammar.readContents(new File(args[n])));
 			if(m.match(0)) {
 				count++;
 				if(!checkOnly) {
-					FileWriter fw = new FileWriter(s);
+					FileWriter fw = new FileWriter(outputFile);
 					BufferedWriter bw = new BufferedWriter(fw);
 					PrintWriter pw = new PrintWriter(bw);
 					DebugOutput dout = new DebugOutput(pw);
-					if(suffix.equals(".py"))
+					if(suffix.equals(".py")) {
 						m.dumpMatchesPython("VAR",dout);
-					else if(suffix.equals(".pm"))
+						dout.print("CONTENTS=\""+m.escText(m.substring())+"\"");
+					} else if(suffix.equals(".pm")) {
 						m.dumpMatchesPerl("$VAR",dout);
-					else if(suffix.equals(".xml"))
-						m.dumpMatchesXML(dout);
-					else if(suffix.equals(".pegout"))
+						dout.print("$CONTENTS=\""+m.escText(m.substring())+"\"");
+					} else if(suffix.equals(".xml")) {
+						m.dumpMatchesXML(dout,true);
+					} else if(suffix.equals(".pegout")) {
 						m.dumpMatches(dout);
+					}
 					dout.flush();
 					pw.close();
 				}
