@@ -7,8 +7,11 @@ public class Near {
 	public int lineNum=1, pos, startOfLine, endOfLine;
 	public Near() {}
 	public String toString() {
-		String line = text.substring(startOfLine,endOfLine);
-		String str = line.substring(0,pos)+"|"+line.substring(pos);
+		int lstart = startOfLine - 50;
+		if(lstart < 0) lstart = 0;
+		int npos = pos + startOfLine - lstart;
+		String line = text.substring(lstart,endOfLine);
+		String str = line.substring(0,npos)+"|"+line.substring(npos);
 		String base = "";
 		if(expected != null) {
 			if(expected.possibilities.size()==1) {
