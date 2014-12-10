@@ -419,6 +419,12 @@ public class ReParse {
 			String lookup = g.group(0).substring();
 			if("brk".equals(lookup))
 				return new Break();
+			else if("OpenWhite".equals(lookup))
+				return new OpenWhite();
+			else if("BodyWhite".equals(lookup))
+				return new BodyWhite();
+			else if("CloseWhite".equals(lookup))
+				return new CloseWhite();
 			return new Lookup(lookup, gram);
 		} else if("nothing".equals(pn)) {
 			return new Nothing();

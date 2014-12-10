@@ -149,6 +149,12 @@ public class Test {
 		m = g.matcher("vector","1+2,(8+3)*9-4,4,9+7");
 		assert(m.matches());
 		
+		g.compile("eol", "\n");
+		g.compile("line","line");
+		g.compile("line_eol","{line}{eol}");
+		m = g.matcher("line_eol","line\n");
+		assert(m.matches());
+		
 		test("[\\a-c]+","abab",4);
 		test("[a-\\c]+","abab",4);
 		test("[\\a-\\c]+","acb",3);
@@ -164,6 +170,10 @@ public class Test {
 		test("[^ \t\r\n\b]+","abc",3);
 		test("(?i:ab(c|g)ef)","ABCEF",5);
 		test("[0-67-9]+","1234",4);
+		test("{OpenWhite}","   ",3);
+		test("{OpenWhite}","",-1);
+		test("{OpenWhite}\n{BodyWhite}"," \n ",3);
+		test("{OpenWhite}\n{BodyWhite}\n{CloseWhite}[ \t]*","  \n  \nx",6);
 		
 		g = new Grammar();
 		g.compile("import", "import");

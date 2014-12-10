@@ -173,7 +173,12 @@ public class Matcher extends Group {
 		pr.after = after;
 	}
 	
+	// data for white space patterns
+	public StringBuilder white = new StringBuilder();
+	public List<Integer> whiteThresholds = new ArrayList<Integer>();
+	
 	Expected expected;
+	
 	public void expected(Expected ex) {
 		if(textPos == maxTextPos || ex.epos == maxTextPos) {
 			ex.build(maxTextPos);
