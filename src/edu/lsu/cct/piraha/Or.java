@@ -1,5 +1,6 @@
 package edu.lsu.cct.piraha;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,11 @@ public class Or extends Pattern {
 		int posSave = m.getTextPos();
 		int sz = m.subMatches.size();
 		List<Expected> expecteds = new ArrayList<Expected>();
+		StringBuilder whSave = new StringBuilder();
+		List<Integer> whListSave = new ArrayList<Integer>();
+		whSave.append(m.white);
+		for(int n : m.whiteThresholds)
+			whListSave.add(n);
 		for(int i=0;i<patterns.size();i++) {
 			m.setTextPos(posSave);
 			int nsz = m.subMatches.size();
@@ -36,6 +42,14 @@ public class Or extends Pattern {
 				m.subMatches.removeLast();
 				nsz--;
 			}
+			
+			// Possibly this can be optimized.
+			m.white.setLength(0);
+			m.white.append(whSave);
+			m.whiteThresholds.clear();
+			for(int n : whListSave)
+				m.whiteThresholds.add(n);
+			
 			boolean b = Matcher.matchAll(patterns.get(i),m);
 			if(b)
 				return true;

@@ -170,10 +170,12 @@ public class Test {
 		test("[^ \t\r\n\b]+","abc",3);
 		test("(?i:ab(c|g)ef)","ABCEF",5);
 		test("[0-67-9]+","1234",4);
-		test("{OpenWhite}","   ",3);
+		test("{OpenWhite}","   ",0);
 		test("{OpenWhite}","",-1);
-		test("{OpenWhite}\n{BodyWhite}"," \n ",3);
-		test("{OpenWhite}\n{BodyWhite}\n{CloseWhite}[ \t]*","  \n  \nx",6);
+		test("{OpenWhite}{BodyWhite}"," \n ",1);
+		test("{OpenWhite}{BodyWhite}\n{CloseWhite}x[ \t]*","  \nx",4);
+		test("{OpenWhite}({BodyWhite}y\n{OpenWhite}{BodyWhite}x|{BodyWhite}y)"," y\n  z",2);
+		test("{OpenWhite}({BodyWhite}y\n{OpenWhite})*"," y\n  y\n   y\n",7);
 		
 		g = new Grammar();
 		g.compile("import", "import");
