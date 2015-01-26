@@ -3,6 +3,10 @@ package edu.lsu.cct.piraha;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Base class for all kinds of
+ * pattern elements.
+ */
 public abstract class Pattern {
 	public abstract boolean match(Matcher m);
 
