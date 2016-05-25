@@ -305,8 +305,11 @@ public class Group implements Cloneable {
 			return "\\\"";
 		if(c == '\'')
 			return "\\'";
-		if(c == '$')
-			return "\\$";
+//		Needed for translation to perl data
+//		structures, but a problem for everything
+//		else. It shouldn't be here.
+//		if(c == '$')
+//			return "\\$";
 		if(c == '@')
 			return "\\@";
 		if(c == '%')
