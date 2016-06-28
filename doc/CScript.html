@@ -1,0 +1,825 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1" />
+  <title>CSscript: Build a Language in Two Hours</title>
+  <style type="text/css">
+    p {
+    }
+    code {
+      background-color: #FFFF88;
+      border: 2px solid black;
+      border-radius: 5px;
+    }
+    pre {
+      background-color: #FFFF88;
+      border: 2px solid black;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+  <body>
+        <h1>piraha-peg - CScriptLanguage.wiki</h1>
+
+          <hr />
+
+          <h1>Build A Language In Two Hours</h1>
+
+<h1>The Grammar</h1>
+
+<p>One of the nice things at parsing expression grammars is how expressive they are, and how easy it is to build fairly complex results in a small space.</p>
+
+<p>The first step in creating our language will be to create the "skipper". The skipper is a pattern which matches things like white space and comments. A typical C-like skipper</p>
+
+<p><code class='cd'>
+skipper = \b([ \t\r\n]|//[^\n]*|/\*(\*[^/]|[^*])*\*/)*
+</code></p>
+
+<p>Let's consider what we have here. The "\b" pattern means we want this pattern to include a word boundary. Word boundaries are things like transitions between letters and symbols.</p>
+
+<p>The next types of things in the skipper are white space, <code>[ \t\r\n]</code>; a comment that goes until the end of the line, <code>//[^\n]*</code>; or a multi-line comment <code>/\*(\*[^/]|[^*])*\*/</code>. This last consists of the literal start and end sequences, <code>/\*</code> and <code>\*/</code>. In between it matches a sequence which consists of characters that either match <code>[^*]</code> or <code>\*[^/]</code>.</p>
+
+<p>Now we consider various types of basic pattern elements. The double quote:</p>
+
+<p><code>
+dquote = "(\\.|[^"\\])*"
+</code></p>
+
+<p>The integer, with optional leading minus sign:</p>
+
+<p><code>
+int = -?[0-9]+
+</code></p>
+
+<p>A name (which is really a C-Identifier):</p>
+
+<p><code>
+name = [a-zA-Z_][a-zA-Z0-9_]*
+</code></p>
+
+<p>Next we'll define a mathematical or logical expression, basing it loosely on the C-language precedence of operators. This is similar to what we already did with the calculator, except we'll include comparison and logical operators.</p>
+
+<p>```</p>
+
+<h1>operators</h1>
+
+<pre>mulop = *|/|%
+addop = +|-
+ltgt = &lt;=?|&gt;=?
+eq = [!=]=
+andor = &amp;&amp;|\|\|</pre>
+
+<h1>expressions built from operators</h1>
+
+<pre>e1 = {fcall}|{index}|{name}|{int}|{dquote}|( {expr} )
+e2 = {e1}( {mulop} {e1})*
+e3 = {e2}( {addop} {e2})*
+e4 = {e3}( {ltgt} {e3})*
+e5 = {e4}( {eq} {e4})*
+expr = {e5}( {andor} {e5})*</pre>
+
+<p>index = {name} [ {expr} ]</p>
+
+<p>fcall = {name} ( ({expr}( , {expr})*|) )
+```</p>
+
+<p>The index defines syntax for indexing an array.</p>
+
+<p>Wherever a blank space occurs in any pattern in the peg, the skipper is implicit. Thus, I could have written the index definition as follows:</p>
+
+<p><code>
+index = {name}{skipper}\[{skipper}{expr}{skipper}\]
+</code></p>
+
+<p>But it would be much harder to read.</p>
+
+<p>Note we've also included a function call definition (<code>fcall</code>) which consists of a name followed by parenthesis containing 0 or more arguments delimited by commas.</p>
+
+<p>At this point we begin the meat of the language. This pattern, quite similar to our function call pattern above, matches a function definition:</p>
+
+<p><code>
+func = {name} \( ({name}( , {name})*|) \) {block}
+</code></p>
+
+<p>Everything here, except the definition of block is defined in terms of things we already know. Nothing in the peg syntax requires us to build our pattern definitions in order of use. We're attempting to build a minimal, but reasonably complete language. For this reason we'll define our block to consist of one of 5 types of statements. Control flow, including an <code>if</code> (with optional <code>else</code>), and a <code>while</code>. We'll also want the ability to assign to local variables, to call functions (e.g. <code>printf("Hello, world");</code> and the ability to return from functions.</p>
+
+<p>All of this can be expressed in a straightforward way in just a few lines.</p>
+
+<pre>
+block = { ({statement} )*}
+
+statement = {if}|{while}|{return}|{assign}|{call}|{block}
+
+assign = ({index}|{name}) = {expr} ;
+call = {name} ( ({expr}( , {expr})*|) ) ;
+if = if ( {expr} ) {block} (else {block})?
+while = while ( {expr} ) {block}
+return = return {expr} \;
+</pre>
+
+<p>Finally, we complete our peg by defining the <code>program</code> pattern. It matches any number of variable assignments and function definitions.</p>
+
+<p><code>
+program = ^ ({assign} |{func} )*$
+</code></p>
+
+<h2>Complete Grammar</h2>
+
+<pre>
+skipper = \b([ \t\r\n]|//[^\n]|/*(*[^/]|[^])*/)
+
+dquote = "(\.|[^"\])*"
+
+int = -?[0-9]+
+
+name = [a-zA-Z_][a-zA-Z0-9_]*
+
+func = {name} ( ({name}( , {name})*|) ) {block}
+
+block = { ({statement} )*}
+
+statement = {if}|{while}|{return}|{assign}|{call}|{block}
+
+index = {name} [ {expr} ]
+
+assign = ({index}|{name}) = {expr} ;
+call = {name} ( ({expr}( , {expr})*|) ) ;
+if = if ( {expr} ) {block} (else {block})?
+while = while ( {expr} ) {block}
+return = return {expr} \;</pre>
+
+<h1>operators</h1>
+
+<pre>mulop = *|/|%
+addop = +|-
+ltgt = &lt;=?|&gt;=?
+eq = [!=]=
+andor = &amp;&amp;|\|\|</pre>
+
+<h1>expressions built from operators</h1>
+
+<pre>e1 = {fcall}|{index}|{name}|{int}|{dquote}|( {expr} )
+e2 = {e1}( {mulop} {e1})*
+e3 = {e2}( {addop} {e2})*
+e4 = {e3}( {ltgt} {e3})*
+e5 = {e4}( {eq} {e4})*
+expr = {e5}( {andor} {e5})*
+
+fcall = {name} ( ({expr}( , {expr})*|) )
+
+program = ^ ({assign} |{func} )*$
+</pre>
+
+<h1>The Interpreter</h1>
+
+<h2>Reading and Compiling our Language</h2>
+
+<p>The first step is to read in the grammar we've defined above
+and compile it. We use the <code>compileFile()</code> member function on
+the <code>Grammar</code> class to accomplish this:
+<pre>
+Grammar g = new Grammar();
+
+static String[] cmdArgs;
+public Cexample(String[] args) throws IOException {
+    cmdArgs = args;
+    g.compileFile(new File("Cexample.peg"));
+}
+</pre>
+
+<p>Next, we provide a method within our code to compile files
+in our new language and report syntax errors. The <code>near()</code>
+function does the latter task.</p>
+
+    <!--Group program;-->
+<pre>
+
+public void compile(File fname) throws IOException {
+    String s = Grammar.readContents(fname);
+    Matcher m = g.matcher("program",s);
+    if(m.matches()) {
+        program = m.group();
+    } else {
+        System.out.println(m.near());
+    }
+}
+</pre>
+
+<p>Our <code>main</code> method will do both of these things for us. It will also store our command</p>
+
+<pre>
+    public static void main(String[] args) throws Exception {
+        Cexample c = new Cexample(args);
+        c.compile(new File(args[0]));
+        c.exec();
+    }
+</pre>
+
+<p>The bulk of the work is implementing the interpreter logic. We'll create a <code>VarMap</code> class to map variable names to values. Each time we invoke a function we'll create a new one of these. The <code>VarMap</code> has a prev field to point to definitions of variables that live farther down in the call stack.</p>
+
+<p>Once our <code>exec(Group,VarMap)</code> function completes, we'll know the definitions of all functions and can locate and invoke <code>main</code>.</p>
+
+<pre>
+    class VarMap {
+        VarMap prev;
+        Map vars = new HashMap();
+    }
+
+    public void exec() {
+      exec(program);
+  }
+
+  public void exec(Group g) {
+    VarMap root = new VarMap();
+    exec(g,root);
+    if(funcMap.containsKey("main")) {
+        List&lt;Object&gt; args = new ArrayList&lt;Object&gt;();
+        for(int i=0;i&lt;cmdArgs.length;i++)
+            args.add(cmdArgs[i]);
+        List&lt;Object&gt; arg = new ArrayList&lt;Object&gt;();
+        arg.add(args);
+        fcall("main",arg,root);
+    }
+}
+</pre>
+
+<p>The next thing to look at is the <code>exec(Group,VarMap)</code> function itself.</p>
+
+<p>Two types of patterns are important for the exec function to understand the program. It must understand assignment statements for root or global variables, and it must understand function definitions.</p>
+
+<p>The "func" definition, if found, will contain a "name" as its first (0th) child. This is the name of the function, and the key we'll use to look up the function in our function map. The call to <code>g.group(0).substring()</code> retrieves this name from the parse tree.</p>
+
+<p>Assignments to indexes are a little more complex. If the first child of the assignment statement is an index, it's an element of an array we are trying to assign. If not, it's a name. This latter case is simpler. We retrieve the name with <code>g.group(0).substring()</code>, and the expression being assigned with <code>g.group(1)</code>. This latter needs to be evaluated before being assigned to the variables table, and <code>eval(g.group(1),vm)</code> performs this task.</p>
+
+<p>For indexes, we have to look up the name of the array being indexed, the <code>List&lt;Object&gt;</code> used to represent the index, evaluate the index, the value, and finally set the element.</p>
+
+<pre>
+    Map funcMap = new HashMap();
+
+    void exec(Group g,VarMap vm) {
+    if("assign".equals(g.getPatternName())) {
+        if(g.group(0).getPatternName().equals("index")) {
+            List&lt;Object&gt; li = (List&lt;Object&gt;)eval(g.group(0).group(0),vm);
+            Integer index = (Integer)eval(g.group(0).group(1),vm);
+            Object value = eval(g.group(1),vm);
+            li.set(index.intValue(),value);
+        } else {
+            vm.vars.put(g.group(0).substring(),eval(g.group(1),vm));
+        }   
+    } else if("func".equals(g.getPatternName())) {
+        funcMap.put(g.group(0).substring(),g);
+    } else if( ....
+        ....
+</pre>
+
+<p>The <code>eval()</code> function is going to convert our mathematical expressions and values into objects. Let's take a brief look at that.</p>
+
+<p>If eval sees an "int" or a "dquote", it simply stores the value into an appropriate form and returns it. For an int, that involves calling the Integer constructor. For a string, the initial and trailing quotes in <code>g.substring()</code> have to be removed, and the basic escape sequences processed ('\n' maps to line feed, '\r' to carriage return, etc.).</p>
+
+<p>If we find an expression, then we have to process logical operators. If we have a single child element, we just evaluate it. If we have more, there will be an odd number, as the pattern matches values joined by logical "and" or "or" operators. We process these left to right and store each new sub result in val. This same basic logic will be used to construct all the different kinds of operators.</p>
+
+<pre>
+    Object eval(Group g,VarMap vm) {
+        if("int".equals(g.getPatternName())) {
+            return new Integer(g.substring());
+        } else if("dquote".equals(g.getPatternName())) {
+            String s = g.substring();
+            return remap(s);
+        } else if("expr".equals(g.getPatternName())) {
+            Object val = eval(g.group(0),vm);
+            for(int i=1;i&lt;g.groupCount();i+=2) {
+                String op = g.group(i).substring();
+                Object val2 = eval(g.group(i+1),vm);
+                boolean b1 = mkBoolean(val);
+                boolean b2 = mkBoolean(val2);
+                if("&amp;&amp;".equals(op))
+                    val = (b1 &amp; b1) ?  1 : 0;
+                else
+                    val = (b1 | b2) ? 1 : 0;
+            }
+            return val;
+         ...
+</pre>
+
+<p>Function calls are handled by the <code>fcall()</code> function. It takes the function name, the value of all arguments (evaluated by <code>eval()</code> and finally the current variable map.</p>
+
+<p>Variable names are looked up by starting with the current variable map and checking for the variable name. If found, the value is returned. If not, the <code>prev</code> pointer is checked for additional definitions.</p>
+
+<pre>
+           ...
+        } else if("fcall".equals(g.getPatternName())) {
+            List&lt;Object&gt; args = new ArrayList&lt;Object&gt;();
+            for(int i=1;i&lt;g.groupCount();i++) {
+                args.add(eval(g.group(i),vm));
+            }
+            return fcall(g.group(0).substring(),args,vm);
+        } else if("name".equals(g.getPatternName())) {
+            VarMap x = vm;
+            String nm = g.substring();
+            while(x != null) {
+                if(vm.vars.containsKey(nm))
+                    return vm.vars.get(nm);
+                else if(vm.prev == null)
+                    throw new Error("Undefined variable: '"+nm+"'");
+                vm = vm.prev;
+            }
+            return null;
+        ....
+</pre>
+
+<p>Evaluating function calls is our next step. The <code>fcall</code> method
+starts by providing logic for "builtin" functions such as <code>printf()</code>. If we don't have a builtin function, we create a new VarMap, populate it with variable names.</p>
+
+<p>The variable names are found inside the function definition. The first child of the "func" definition is the function name, the last is the function body. All the children in between are argument names. We fetch each of these in turn, assign values to the variables in the new <code>VarMap</code> and finally invoke the function body with our <code>exec(Group,VarMap)</code> function.</p>
+
+<pre>
+    Object fcall(String fn,List&lt;Object&gt; args,VarMap vm) {
+        try {
+            if("printf".equals(fn)) {
+                Object[] pars = new Object[args.size()-1];
+                for(int i=0;i&lt;pars.length;i++)
+                    pars[i] = args.get(i+1);
+                System.out.printf(args.get(0).toString(),pars);
+                return 1;
+            } else if("len".equals(fn)) {
+                ....
+            } 
+            VarMap local = new VarMap();
+            local.prev = vm; 
+            Group func = funcMap.get(fn);
+            if(func == null)
+                throw new Error("unknown function "+fn);
+            for(int i=1;i+1&lt;func.groupCount();i++) {
+                local.vars.put(func.group(i).substring(),args.get(i-1));
+            } <br />
+            exec(func.group(func.groupCount()-1),local);
+        } catch(ReturnException re) {
+            return re.o;
+        } <br />
+        return null;
+    } <br />
+</pre>
+
+<p>Hopefully, this explains enough of the code that you can understand the complete code listing below. Here is a sample program written in our C-Script language.</p>
+
+<pre>
+fib(n) {
+    if(n &lt; 2) {
+        return n;
+    }
+    return fib(n-1)+fib(n-2);
+}
+
+main(args) {
+    n = int(args[1]);
+    printf("fib(%d)=%d\n",n,fib(n));
+}
+</pre>
+
+<p>It is invoked as follows:</p>
+
+<p><code>
+  $ java -cp piraha.peg:. Cexample fib.cs 15
+  fib(15)=610
+</code></p>
+
+<p>Possibly a more interesting example is this sort program:
+
+<pre>
+// Quicksort variant
+sort2(arr,start,end) {
+  if(start &gt;= end) {
+    return 1;
+  }
+  lo = start;
+  hi = end;</p>
+
+    // find the pivot
+    r = rand();
+  if(r &lt; 0) {
+    r = 0-r;
+  }
+  pivot = r % (hi - lo + 1) + lo;
+
+  pv = arr[pivot];
+  while(lo &lt; hi) {
+    lov = arr[lo];
+    hiv = arr[hi];
+    if(lov &gt; hiv) {
+      arr[lo]=hiv;
+      arr[hi]=lov;
+    } else {
+      if(lov &lt;= pv) {
+        lo = lo + 1;
+      } else {
+        hi = hi - 1;
+      }
+    }
+  }
+  if(lo == end) {
+    lo = lo - 1;
+  }
+  sort2(arr,start,lo);
+  sort2(arr,lo+1,end);
+
+}
+
+sort(arr) {
+  n = len(arr);
+  sort2(arr,0,n-1);
+}
+
+main() {
+  arr = mkarray();
+  // make a random array
+  i = 0;
+  while(i &lt; 100) {
+    append(arr,rand() % 1000);
+    i = i + 1;
+  }
+  sort(arr);
+  printf("%s\n",arr);
+}
+</pre>
+
+<h2>Complete listing</h2>
+
+<pre>
+import edu.lsu.cct.piraha.*;
+import java.io.*;
+import java.util.*;
+
+public class Cexample {
+  static class ReturnException extends RuntimeException {
+    Object o;
+    ReturnException(Object o) {
+      this.o = o;
+    }
+  }
+
+  Grammar g = new Grammar();
+
+  static String[] cmdArgs;
+  public Cexample(String[] args) throws IOException {
+    cmdArgs = args;
+    g.compileFile(new File("Cexample.peg"));
+  }
+
+  Group program;
+
+  public void compile(File fname) throws IOException {
+    String s = Grammar.readContents(fname);
+    Matcher m = g.matcher("program",s);
+    if(m.matches()) {
+      program = m.group();
+    } else {
+      System.out.println(m.near());
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Cexample c = new Cexample(args);
+    c.compile(new File(args[0]));
+    c.exec();
+  }
+
+  class VarMap {
+    VarMap prev;
+    Map&lt;String,Object&gt; vars = new HashMap&lt;String,Object&gt;();
+  }
+
+  public void exec() {
+    exec(program);
+  }
+
+  public void exec(Group g) {
+    VarMap root = new VarMap();
+    exec(g,root);
+    if(funcMap.containsKey("main")) {
+      List&lt;Object&gt; args = new ArrayList&lt;Object&gt;();
+      for(int i=0;i&lt;cmdArgs.length;i++)
+        args.add(cmdArgs[i]);
+      List&lt;Object&gt; arg = new ArrayList&lt;Object&gt;();
+      arg.add(args);
+      fcall("main",arg,root);
+    }
+  }
+
+  Map&lt;String,Group&gt; funcMap = new HashMap&lt;String,Group&gt;();
+
+  void exec(Group g,VarMap vm) {
+    if("assign".equals(g.getPatternName())) {
+      if(g.group(0).getPatternName().equals("index")) {
+        List&lt;Object&gt; li = (List&lt;Object&gt;)eval(g.group(0).group(0),vm);
+        Integer index = (Integer)eval(g.group(0).group(1),vm);
+        Object value = eval(g.group(1),vm);
+        li.set(index.intValue(),value);
+      } else {
+        vm.vars.put(g.group(0).substring(),eval(g.group(1),vm));
+      }
+    } else if("func".equals(g.getPatternName())) {
+      funcMap.put(g.group(0).substring(),g);
+    } else if("program".equals(g.getPatternName())) {
+      for(int i=0;i&lt;g.groupCount();i++)
+        exec(g.group(i),vm);
+    } else if("block".equals(g.getPatternName())) {
+      for(int i=0;i&lt;g.groupCount();i++)
+        exec(g.group(i),vm);
+    } else if("statement".equals(g.getPatternName())) {
+      for(int i=0;i&lt;g.groupCount();i++)
+        exec(g.group(i),vm);
+    } else if("return".equals(g.getPatternName())) {
+      //vm.vars.put("$ret",eval(g.group(0),vm));
+      throw new ReturnException(eval(g.group(0),vm));
+    } else if("while".equals(g.getPatternName())) {
+      while(true) {
+        Object o = eval(g.group(0),vm);
+        boolean b = mkBoolean(o);
+        if(b)
+          exec(g.group(1),vm);
+        else
+          break;
+      }
+    } else if("if".equals(g.getPatternName())) {
+      Object o = eval(g.group(0),vm);
+      boolean b = mkBoolean(o);
+      if(b)
+        exec(g.group(1),vm);
+      else if(g.groupCount() &gt; 2)
+        exec(g.group(2),vm);
+    } else if("call".equals(g.getPatternName())) {
+      List&lt;Object&gt; args = new ArrayList&lt;Object&gt;();
+      for(int i=1;i&lt;g.groupCount();i++) {
+        args.add(eval(g.group(i),vm));
+      }
+      fcall(g.group(0).substring(),args,vm);
+    } else {
+      throw new Error(g.getPatternName());
+    }
+  }
+
+  boolean mkBoolean(Object o) {
+    if(o instanceof String) {
+      String s = (String)o;
+      if(s.length()==0)
+        return false;
+    } else if(o instanceof Integer) {
+      Integer i = (Integer)o;
+      if(i.intValue()==0)
+        return false;
+    }
+    return true;
+  }
+
+  int cmp(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1.compareTo(i2);
+    } else if(o1 instanceof String &amp;&amp; o2 instanceof String) {
+      String s1 = (String)o1;
+      String s2 = (String)o2;
+      return s1.compareTo(s2);
+    } else {
+      throw new Error("cannot compare "+o1+" and "+o2);
+    }
+  }
+
+  Object add(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1 + i2;
+    } else if(o1 instanceof String &amp;&amp; o2 instanceof String) {
+      String s1 = (String)o1;
+      String s2 = (String)o2;
+      return s1 + s2;
+    } else {
+      throw new Error("cannot add "+o1+" and "+o2);
+    }
+  }
+
+  Object mul(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1 * i2;
+    } else if(o1 instanceof String &amp;&amp; o2 instanceof Integer) {
+      String s1 = (String)o1;
+      Integer i2 = (Integer)o2;
+      StringBuffer sb = new StringBuffer();
+      for(int i=0;i&lt;i2;i++)
+        sb.append(s1);
+      return sb.toString();
+    } else {
+      throw new Error("cannot mul "+o1+" and "+o2);
+    }
+  }
+
+  Object sub(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1 - i2;
+    } else {
+      throw new Error("cannot subtract "+o1+" and "+o2);
+    }
+  }
+
+  Object rem(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1 % i2;
+    } else {
+      throw new Error("cannot remainder "+o1+" and "+o2);
+    }
+  }
+
+  Object div(Object o1,Object o2) {
+    if(o1 instanceof Integer &amp;&amp; o2 instanceof Integer) {
+      Integer i1 = (Integer)o1;
+      Integer i2 = (Integer)o2;
+      return i1 / i2;
+    } else {
+      throw new Error("cannot divide "+o1+" and "+o2);
+    }
+  }
+
+  final static java.util.Random rand = new java.util.Random();
+
+  Object fcall(String fn,List&lt;Object&gt; args,VarMap vm) {
+    try {
+      if("printf".equals(fn)) {
+        Object[] pars = new Object[args.size()-1];
+        for(int i=0;i&lt;pars.length;i++)
+          pars[i] = args.get(i+1);
+        System.out.printf(args.get(0).toString(),pars);
+        return 1;
+      } else if("len".equals(fn)) {
+        List&lt;Object&gt; li = (List&lt;Object&gt;)args.get(0);
+        return li.size();
+      } else if("append".equals(fn)) {
+        List&lt;Object&gt; li = (List&lt;Object&gt;)args.get(0);
+        for(int i=1;i&lt;args.size();i++)
+          li.add(args.get(i));
+        return 1;
+      } else if("mkarray".equals(fn)) {
+        return new ArrayList&lt;Object&gt;();
+      } else if("int".equals(fn)) {
+        return new Integer((String)args.get(0));
+      } else if("rand".equals(fn)) {
+        return new Integer(rand.nextInt());
+      } else if("str".equals(fn)) {
+        return args.get(0).toString();
+      }
+      VarMap local = new VarMap();
+      local.prev = vm;
+      Group func = funcMap.get(fn);
+      if(func == null)
+        throw new Error("unknown function "+fn);
+      for(int i=1;i+1&lt;func.groupCount();i++) {
+        local.vars.put(func.group(i).substring(),args.get(i-1));
+      }
+      exec(func.group(func.groupCount()-1),local);
+    } catch(ReturnException re) {
+      return re.o;
+    }
+    return null;
+  }
+
+  Object eval(Group g,VarMap vm) {
+    if("int".equals(g.getPatternName())) {
+      return new Integer(g.substring());
+    } else if("dquote".equals(g.getPatternName())) {
+      String s = g.substring();
+      return remap(s);
+    } else if("expr".equals(g.getPatternName())) {
+      Object val = eval(g.group(0),vm);
+      for(int i=1;i&lt;g.groupCount();i+=2) {
+        String op = g.group(i).substring();
+        Object val2 = eval(g.group(i+1),vm);
+        boolean b1 = mkBoolean(val);
+        boolean b2 = mkBoolean(val2);
+        if("&amp;&amp;".equals(op))
+          val = (b1 &amp; b1) ?  1 : 0;
+        else
+          val = (b1 | b2) ? 1 : 0;
+      }
+      return val;
+    } else if("e5".equals(g.getPatternName())) {
+      Object val = eval(g.group(0),vm);
+      for(int i=1;i&lt;g.groupCount();i+=2) {
+        String op = g.group(i).substring();
+        Object val2 = eval(g.group(i+1),vm);
+        if("==".equals(op))
+          val = cmp(val,val2)==0 ?  1 : 0;
+        else
+          val = cmp(val,val2)==0 ? 0 : 1;
+      }
+      return val;
+    } else if("e4".equals(g.getPatternName())) {
+      Object val = eval(g.group(0),vm);
+      for(int i=1;i&lt;g.groupCount();i+=2) {
+        String op = g.group(i).substring();
+        Object val2 = eval(g.group(i+1),vm);
+        if("&lt;".equals(op))
+          val = cmp(val,val2)&lt; 0 ?  1 : 0;
+        else if("&lt;=".equals(op))
+          val = cmp(val,val2)&lt;=0 ?  1 : 0;
+        else if("&gt;".equals(op))
+          val = cmp(val,val2)&gt; 0 ?  1 : 0;
+        else if("&gt;=".equals(op))
+          val = cmp(val,val2)&gt;=0 ?  1 : 0;
+      }
+      return val;
+    } else if("e3".equals(g.getPatternName())) {
+      Object val = eval(g.group(0),vm);
+      for(int i=1;i&lt;g.groupCount();i+=2) {
+        String op = g.group(i).substring();
+        Object val2 = eval(g.group(i+1),vm);
+        if("+".equals(op)) {
+          val = add(val,val2);
+        } else {
+          val = sub(val,val2);
+        }
+      }
+      return val;
+    } else if("e2".equals(g.getPatternName())) {
+      Object val = eval(g.group(0),vm);
+      for(int i=1;i&lt;g.groupCount();i+=2) {
+        String op = g.group(i).substring();
+        Object val2 = eval(g.group(i+1),vm);
+        if("*".equals(op)) {
+          val = mul(val,val2);
+        } else if("%".equals(op)) {
+          val = rem(val,val2);
+        } else {
+          val = div(val,val2);
+        }
+      }
+      return val;
+    } else if("e1".equals(g.getPatternName())) {
+      return eval(g.group(0),vm);
+    } else if("fcall".equals(g.getPatternName())) {
+      List&lt;Object&gt; args = new ArrayList&lt;Object&gt;();
+      for(int i=1;i&lt;g.groupCount();i++) {
+        args.add(eval(g.group(i),vm));
+      }
+      return fcall(g.group(0).substring(),args,vm);
+    } else if("name".equals(g.getPatternName())) {
+      VarMap x = vm;
+      String nm = g.substring();
+      while(x != null) {
+        if(vm.vars.containsKey(nm))
+          return vm.vars.get(nm);
+        else if(vm.prev == null)
+          throw new Error("Undefined variable: '"+nm+"'");
+        vm = vm.prev;
+      }
+      return null;
+    } else if("index".equals(g.getPatternName())) {
+      VarMap x = vm;
+      String nm = g.group(0).substring();
+      Integer index = (Integer)eval(g.group(1),vm);
+      while(x != null) {
+        if(vm.vars.containsKey(nm)) {
+          List&lt;Object&gt; li = (List&lt;Object&gt;)vm.vars.get(nm);
+          return li.get(index);
+        } else if(vm.prev == null)
+          throw new Error("Undefined variable: '"+nm+"'");
+        vm = vm.prev;
+      }
+      return null;
+    } else {
+      throw new Error(g.getPatternName());
+    }
+  }
+  String remap(String s) {
+    StringBuffer sb = new StringBuffer();
+    for(int i=1;i+1&lt;s.length();i++) {
+      char c = s.charAt(i);
+      if(c == '\\') {
+        char c2 = s.charAt(++i);
+        if(c2 == 'n')
+          sb.append('\n');
+        else if(c2 == 'r')
+          sb.append('\r');
+        else if(c2 == 't')
+          sb.append('\t');
+        else
+          sb.append(c2);
+      } else {
+        sb.append(c);
+      }
+    }
+    return sb.toString();
+  }
+
+}
+</pre>
+
+</body>
+</html>

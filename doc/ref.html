@@ -1,0 +1,45 @@
+<html>
+<head>
+<title>Piraha Reference Card</title>
+</head>
+<style>
+<!--
+td.pat { background-color: #88FFFF; }
+th {
+  background-color: #229999; 
+  color: #FFFFFF;
+}
+-->
+</style>
+<h1>Piraha Reference Card</h1>
+<body>
+<table border=1 cellpadding=5 cellspacing=0>
+<tr><th>Pattern Element</th><th>Meaning</th></tr>
+<tr><td class='pat'>[a-fx]</td><td>Square brackets denote a character class. The pattern at left can match the letters a-f or x. Piraha has no pre-defined character classes and does not support the notions of unions or intersections insided character classes available in Java's regular expression package.</td></tr>
+<tr><td class='pat'>[^a-fx]</td><td>This is a negated character entity. It will match any character except a-f or x.</td></tr>
+<tr><td class='pat'>[^]</td><td>This pattern will match any character.</td></tr>
+<tr><td class='pat'>x{n,m}</td><td>The quantifier pattern will match the pattern x a minimum of n and a maximum of m times.</td></tr>
+<tr><td class='pat'>x{n,}</td><td>This version of the quantifier pattern will match n or more occurrences of x</td></tr>
+<tr><td class='pat'>x{,m}</td><td>This version of the quantifier pattern will match at most m occurrences of x</td></tr>
+<tr><td class='pat'>x+</td><td>A shorthand for x{1,}</td></tr>
+<tr><td class='pat'>x*</td><td>A shorthand for x{0,}</td></tr>
+<tr><td class='pat'>x?</td><td>A shorthand for x{0,1}</td></tr>
+<tr><td class='pat'>\1</td><td>Match the first backreference within this rule. Any of backreferences 1 to 9 may be matched by using \2, \3, etc.</td></tr>
+<tr><td class='pat'>{name}</td><td>Match the pattern named by name. Save the match in a backreference.</td></tr>
+<tr><td class='pat'>{-name}</td><td>Match the pattern named by name, but do not capture backreferences.|</td></tr>
+<tr><td class='pat'>(?=x)</td><td>Match the pattern x as a zero-width lookahead assertion</td></tr>
+<tr><td class='pat'>(?!x)</td><td>A negative zero-width lookahead assertion for pattern x</td></tr>
+<tr><td class='pat'>(x|y|z)</td><td>An ordered set of preferred ways to match. If pattern x does not succeed, try pattern y, and then z. There can be any number of alternatives in this set.</td></tr>
+<tr><td class='pat'>\b</td><td>A word boundary. A word is composed of letters, numbers, and the underscore.</td></tr>
+<tr><td class='pat'>$</td><td>Match the end of the string.</td></tr>
+<tr><td class='pat'>^</td><td>Match the beginning of the string.</td></tr>
+<tr><td class='pat'>(?i:x)</td><td>Ignore case when matching x.</td></tr>
+<tr><td class='pat'>(?-i:x)</td><td>Do not ignore case when matching x.|</td></tr>
+<tr><td class='pat'>{OpenWhite}</td><td>A zero-width lookahead assertion that a new indentation level has opened, starting at the current position.</td></tr>
+<tr><td class='pat'>{CloseWhite}</td><td>A zero-width lookahead assertion that an indentation level has closed, starting at the current position.</td></tr>
+<tr><td class='pat'>{BodyWhite}</td><td>
+Match the current indentation level. Initially this will be zero. It will increase when {OpenWhite} successfully matches, and decrease when {CloseWhite} successfully matches.
+</td></tr>
+</table>
+</body>
+</html>
