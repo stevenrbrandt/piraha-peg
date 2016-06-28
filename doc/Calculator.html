@@ -1,0 +1,245 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1" />
+<title>Calculator</title>
+<style type="text/css">
+    p {
+    }
+    code {
+      font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+    }
+    pre {
+      padding: 4px;
+      background-color: #FFFFCC;
+      border: 2px solid black;
+      border-radius: 5px;
+    }
+</style>
+</head>
+
+  <body>
+          <h1>piraha-peg - Calculator.wiki</h1>
+
+          <hr />
+
+          <h1>Creating a calculator with Piraha</h1>
+
+<h1>Getting to Know Piraha: A Calculator</h1>
+
+<p>When building any grammar in Piraha, you start with patterns. We write a pattern for a number as <code>"-?[0-9]+"</code>. This will match one or more digits, optionally preceded by a minus sign. We'll name this pattern num.</p>
+
+<pre>
+  Grammar math = new Grammar();
+  math.compile("num","-?[0-9]+");
+</pre>
+
+<p>We'll also need patterns to match the basic mathematical operations: add and subtract.</p>
+
+<pre>
+  math.compile("addop", "\\+|-");
+</pre>
+
+<p>So far we have only written simple patterns. While they are named and part of an object called a grammar, they aren't really a grammar yet. The next step is
+to start combining these patterns together. We
+could write</p>
+
+<pre>
+  math.compile("addexpr", "{num}({addop}{num})*");
+</pre>
+
+<p>This pattern would match <code>3</code> as well as <code>3+4</code> as well as <code>3+4-2</code> because the group (i.e. the parens) matches a + or - followed by a number, and this group can match zero or more times. When matching <code>3+4-2</code> the 3 matches the first instance of <code>{num}</code> the <code>+4</code> matches the group, and -2 matches the group again.</p>
+
+<p>This will allow us to parse a simple sequence of additions and subtractions.</p>
+
+<p>Let's take a look at how we'd use that code.
+<pre>
+  Matcher m = math.matcher("expr", "3+4-2");
+  boolean b = m.matches();
+  if (b) {
+    m.dumpMatches();
+    System.out.println("eval=" + evalExpr(m));
+  } else {
+    System.out.println(m.near()); // report errors
+  }
+</pre>
+
+<p>To apply our patterns to actual text, we create a matcher with both the pattern name and the text we want to match. We then ask the Matcher if the pattern matches, and if it does we print the parse tree in a human readable form. If the parse fails, we print a diagnostic showing where the pattern matcher had trouble.</p>
+
+<p>In this example, the printed parse tree looks like this:
+<pre>
+  [0] addexpr:
+    [0] num=(3)
+    [1] addop=(+)
+    [2] num=(4)
+    [3] addop=(-)
+    [4] num=(2)
+</pre>
+
+<p>The topmost node is addexpr, it has child nodes that are either num or addop. An equals sign shows us the value each node has.</p>
+
+<p>Evaluating this tree is simple. There is only a single class you need to understand in order to make use of it: Group. The top 5 methods in the listing below are the main ones you need to make sense of any parse tree.</p>
+
+<pre>
+public class Group {
+  // position in text where the match began
+  public int getBegin();
+  // position in text where the match ended
+  public int getEnd();
+  // number of child groups
+  public int groupCount();
+  // the nth child group
+  public Group group(int n);
+  // the name of the pattern that matched this text
+  public String getPatternName();
+
+  // the full input string
+  public String getText();
+  // the substring matched by this pattern
+  public String toString();
+  // show the parse tree
+  public void dumpMatches();
+  // show the parse tree in XML form
+  public void dumpMatchesXML();
+
+}
+</pre>
+
+<p>The Matcher is a subclass of group. This is a convenience that allows you to access the matches more easily.</p>
+
+<p>For the case of our calculator, we can use this Group object to compute the sum of all the addends.
+<pre>
+  private static double evalExpr(Group match) {
+    double answer = Double.parseDouble(match.group(0).toString());
+    for(int i=1;i&lt;match.groupCount();i+=2) {
+      String op = match.group(i).toString();
+      double addend = Double.parseDouble(match.group(i+1).toString());
+      if("+".equals(op))
+        answer += addend;
+      else
+        answer -= addend;
+    }
+    return answer;
+  }
+</pre>
+
+<h2>Adding Multiplication</h2>
+
+<p>To capture a calculator we want the multiplies and divides to work as well, and we'll want to recognize the order of operations (multiply and divide before add and subtract).</p>
+
+<p>To enable this feature, we'll replace <code>{num}</code> above with <code>{mulexp}</code>.</p>
+
+<pre>
+  math.compile("addexpr", "{mulexp}({addop}{mulexp})*");
+  math.compile("mulexp", "{num}({mulop}{num})*");
+</pre>
+
+<p>Now when we examine our parse tree, we'll find that <code>{addexp}</code> nodes have <code>{mulexp}</code> nodes underneath them instead of simple numbers.</p>
+
+<pre>
+package edu.lsu.cct.piraha.examples;</p>
+
+import edu.lsu.cct.piraha.Grammar;
+import edu.lsu.cct.piraha.Group;
+import edu.lsu.cct.piraha.Matcher;
+
+public class Calc {
+  public static Grammar makeMath() {
+    Grammar math = new Grammar();
+    // All the various was a double precision number (or integer) can be
+    // written
+    math.compile("num","-?[0-9]+(\.[0-9]+)?");
+
+    // The basic operators
+    math.compile("addop", "\\+|-");
+    math.compile("mulop", "\\*|/");
+    math.compile("powop", "\\*\\*");
+
+    // unary negation
+    math.compile("neg", "-"); 
+
+    // All the different ways we can stick things together, includes
+    // parenthesis.
+    // Note: The start of "expr" should not be {expr}
+    // because that leads to infinite recursion.
+    math.compile("expr", "{mulexp}({addop}{mulexp})*");
+    math.compile("mulexp", "{powexp}({mulop}{powexp})*");
+    math.compile("powexp", "{num}({powop}{num})*|\\({expr}\\)");
+
+    return math;
+  }
+
+  Grammar math = makeMath();
+
+  public double eval(String s) {
+    Matcher m = math.matcher("expr",s.trim());
+    if(m.matches())
+      return evalExpr(m);
+    else
+      return Double.NaN;
+  }
+
+  public static void main(String[] args) {
+    Grammar math = makeMath();
+
+    Matcher m = math.matcher("expr", "1+2*4+4**3**2"); // answer is 262153
+
+    boolean b = m.matches();
+    System.out.println("match? " + b);
+    if (b) {
+      m.dumpMatchesXML();
+      System.out.println("node count=" + count(m));
+      System.out.println("eval=" + evalExpr(m));
+    }
+  }
+
+  private static int count(Group m) {
+    int n = 1;
+    for (int i = 0; i &lt; m.groupCount(); i++) {
+      n += count(m.group(i));
+    }
+    return n;
+  }
+
+  private static double evalExpr(Group match) {
+    String pn = match.getPatternName();
+    if ("num".equals(pn)) {
+      return Double.parseDouble(match.substring());
+    } else if ("expr".equals(pn)) {
+      double d = evalExpr(match.group(0));
+      for(int i=1;i+1&lt;match.groupCount();i+=2) {
+        String op = match.group(i).substring();
+        if("+".equals(op))
+          d += evalExpr(match.group(i+1));
+        else
+          d -= evalExpr(match.group(i+1));
+      }
+      return d;
+    } else if ("mulexp".equals(pn)) {
+      double d = evalExpr(match.group(0));
+      for(int i=1;i+1&lt;match.groupCount();i+=2) {
+        String op = match.group(i).substring();
+        if("*".equals(op))
+          d *= evalExpr(match.group(i+1));
+        else
+          d /= evalExpr(match.group(i+1));
+      }
+      return d;
+    } else if ("powexp".equals(pn)) {
+      int n = match.groupCount();
+      double d = evalExpr(match.group(n-1));
+      for(int i=n-2;i&gt;0;i-=2) {
+        d = Math.pow(evalExpr(match.group(i-1)), d);
+      }
+      return d;
+    }
+    return evalExpr(match.group(0));
+  }
+
+}
+</pre>
+
+</body>
+</html>

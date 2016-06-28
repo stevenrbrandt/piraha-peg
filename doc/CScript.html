@@ -12,6 +12,7 @@
       font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
     }
     pre {
+      padding: 4px;
       background-color: #FFFFCC;
       border: 2px solid black;
       border-radius: 5px;
@@ -41,25 +42,23 @@ skipper = \b([ \t\r\n]|//[^\n]*|/\*(\*[^/]|[^*])*\*/)*
 
 <p>Now we consider various types of basic pattern elements. The double quote:</p>
 
-<p><code>
+<pre>
 dquote = "(\\.|[^"\\])*"
-</code></p>
+</pre>
 
 <p>The integer, with optional leading minus sign:</p>
 
-<p><code>
+<pre>
 int = -?[0-9]+
-</code></p>
+</pre>
 
 <p>A name (which is really a C-Identifier):</p>
 
-<p><code>
+<pre>
 name = [a-zA-Z_][a-zA-Z0-9_]*
-</code></p>
+</pre>
 
 <p>Next we'll define a mathematical or logical expression, basing it loosely on the C-language precedence of operators. This is similar to what we already did with the calculator, except we'll include comparison and logical operators.</p>
-
-<p>```</p>
 
 <h1>operators</h1>
 
@@ -176,7 +175,7 @@ program = ^ ({assign} |{func} )*$
 
 <p>The first step is to read in the grammar we've defined above
 and compile it. We use the <code>compileFile()</code> member function on
-the <code>Grammar</code> class to accomplish this:
+the <code>Grammar</code> class to accomplish this:</p>
 <pre>
 Grammar g = new Grammar();
 
@@ -383,7 +382,7 @@ main(args) {
   fib(15)=610
 </code></p>
 
-<p>Possibly a more interesting example is this sort program:
+<p>Possibly a more interesting example is this sort program:</p>
 
 <pre>
 // Quicksort variant
@@ -392,7 +391,7 @@ sort2(arr,start,end) {
     return 1;
   }
   lo = start;
-  hi = end;</p>
+  hi = end;
 
     // find the pivot
     r = rand();
