@@ -9,12 +9,10 @@
     p {
     }
     code {
-      background-color: #FFFF88;
-      border: 2px solid black;
-      border-radius: 5px;
+      font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
     }
     pre {
-      background-color: #FFFF88;
+      background-color: #FFFFCC;
       border: 2px solid black;
       border-radius: 5px;
     }
@@ -33,9 +31,9 @@
 
 <p>The first step in creating our language will be to create the "skipper". The skipper is a pattern which matches things like white space and comments. A typical C-like skipper</p>
 
-<p><code class='cd'>
+<pre>
 skipper = \b([ \t\r\n]|//[^\n]*|/\*(\*[^/]|[^*])*\*/)*
-</code></p>
+</pre>
 
 <p>Let's consider what we have here. The "\b" pattern means we want this pattern to include a word boundary. Word boundaries are things like transitions between letters and symbols.</p>
 
@@ -78,20 +76,20 @@ e2 = {e1}( {mulop} {e1})*
 e3 = {e2}( {addop} {e2})*
 e4 = {e3}( {ltgt} {e3})*
 e5 = {e4}( {eq} {e4})*
-expr = {e5}( {andor} {e5})*</pre>
+expr = {e5}( {andor} {e5})*
 
-<p>index = {name} [ {expr} ]</p>
+index = {name} [ {expr} ]
 
-<p>fcall = {name} ( ({expr}( , {expr})*|) )
-```</p>
+fcall = {name} ( ({expr}( , {expr})*|) )
+</pre>
 
 <p>The index defines syntax for indexing an array.</p>
 
 <p>Wherever a blank space occurs in any pattern in the peg, the skipper is implicit. Thus, I could have written the index definition as follows:</p>
 
-<p><code>
+<pre>
 index = {name}{skipper}\[{skipper}{expr}{skipper}\]
-</code></p>
+</pre>
 
 <p>But it would be much harder to read.</p>
 
@@ -99,9 +97,9 @@ index = {name}{skipper}\[{skipper}{expr}{skipper}\]
 
 <p>At this point we begin the meat of the language. This pattern, quite similar to our function call pattern above, matches a function definition:</p>
 
-<p><code>
+<pre>
 func = {name} \( ({name}( , {name})*|) \) {block}
-</code></p>
+</pre>
 
 <p>Everything here, except the definition of block is defined in terms of things we already know. Nothing in the peg syntax requires us to build our pattern definitions in order of use. We're attempting to build a minimal, but reasonably complete language. For this reason we'll define our block to consist of one of 5 types of statements. Control flow, including an <code>if</code> (with optional <code>else</code>), and a <code>while</code>. We'll also want the ability to assign to local variables, to call functions (e.g. <code>printf("Hello, world");</code> and the ability to return from functions.</p>
 
@@ -121,9 +119,9 @@ return = return {expr} \;
 
 <p>Finally, we complete our peg by defining the <code>program</code> pattern. It matches any number of variable assignments and function definitions.</p>
 
-<p><code>
+<pre>
 program = ^ ({assign} |{func} )*$
-</code></p>
+</pre>
 
 <h2>Complete Grammar</h2>
 

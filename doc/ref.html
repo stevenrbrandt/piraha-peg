@@ -1,8 +1,11 @@
-<html>
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1" />
 <title>Piraha Reference Card</title>
-</head>
-<style>
+<style type="text/css">
 <!--
 td.pat { background-color: #88FFFF; }
 th {
@@ -11,9 +14,10 @@ th {
 }
 -->
 </style>
-<h1>Piraha Reference Card</h1>
+</head>
 <body>
-<table border=1 cellpadding=5 cellspacing=0>
+<h1>Piraha Reference Card</h1>
+<table border="1" cellpadding="5" cellspacing="0">
 <tr><th>Pattern Element</th><th>Meaning</th></tr>
 <tr><td class='pat'>[a-fx]</td><td>Square brackets denote a character class. The pattern at left can match the letters a-f or x. Piraha has no pre-defined character classes and does not support the notions of unions or intersections insided character classes available in Java's regular expression package.</td></tr>
 <tr><td class='pat'>[^a-fx]</td><td>This is a negated character entity. It will match any character except a-f or x.</td></tr>
