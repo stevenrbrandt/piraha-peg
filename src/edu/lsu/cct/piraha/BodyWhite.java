@@ -25,7 +25,7 @@ public class BodyWhite extends Pattern {
 						return false;
 					}
 				} else {
-					return false;
+					return m.white.length()==0;
 				}
 			}
 		}
