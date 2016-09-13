@@ -6,7 +6,7 @@ public class AutoGrammar {
   
   public final static Grammar reparser = reparserGenerator();
   
-  private static Grammar reparserGenerator() {
+  static Grammar reparserGenerator() {
     Grammar g = new Grammar();
     g.patterns.put("named",new Seq(
       new Literal('{'),
@@ -174,7 +174,7 @@ public class AutoGrammar {
   
   public final static Grammar fileparser = fileparserGenerator();
   
-  private static Grammar fileparserGenerator() {
+  static Grammar fileparserGenerator() {
     Grammar g = new Grammar();
     g.patterns.put("named",new Seq(
       new Literal('{'),
