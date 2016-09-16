@@ -12,14 +12,15 @@ public class BackRef extends Pattern {
 	@Override
 	public boolean match(Matcher m) {
 		//System.out.println("num="+num+" mc="+m.matchCount());
-		if(num >= m.groupCount())
+		if(num >= m.groupCount()) {
 			return false;
+    }
 		Group backRef = m.group(num);
 		int begin = backRef.getBegin();
 		int end = backRef.getEnd();
 		int n = end-begin;
 		int pos = m.getTextPos();
-		if(pos + n > m.text.length())
+		if((pos + n) > m.text.length())
 			return false;
 		if (ignCase) {
 			for (int i = 0; i < n; i++) {

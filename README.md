@@ -9,13 +9,13 @@ The Reference link below provides a detailed description of the pattern elements
 Quick Start describes how to use the API. See the Calculator and CSscript examples to
 get a more detailed idea on how to write programs with Piraha.
 
-[Reference](https://www.cct.lsu.edu/~sbrandt/piraha-peg/doc/ref.html)
+[Reference](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/ref.html)
 
-[Quick Start](https://www.cct.lsu.edu/~sbrandt/piraha-peg/doc/QuickStart.html)
+[Quick Start](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/QuickStart.html)
 
-[Calculator](https://www.cct.lsu.edu/~sbrandt/piraha-peg/doc/Calculator.html)
+[Calculator](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/Calculator.html)
 
-[CScript](https://www.cct.lsu.edu/~sbrandt/piraha-peg/doc/CScript.html)
+[CScript](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/CScript.html)
 
 [Citing Piraha](http://ieeexplore.ieee.org/document/5698011/) This is a link to the
 Piraha Paper.

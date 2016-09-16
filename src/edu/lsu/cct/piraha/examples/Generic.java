@@ -56,7 +56,7 @@ public class Generic {
 				
 				if(olderThanPeg && olderThanSource) {
 					System.out.println(" ---> Up to date");
-					System.exit(0);
+					continue;
 				}
 			}
 			if(outputFile.equals(args[n])) throw new IOException("won't over-write input file "+args[n]);

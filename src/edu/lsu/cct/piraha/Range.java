@@ -2,7 +2,7 @@ package edu.lsu.cct.piraha;
 
 import java.util.Set;
 
-class Range extends Pattern {
+public class Range extends Pattern {
 	char lo,hi;
 	Range(int lo,int hi) {
 		this.lo = (char) lo;

@@ -2,7 +2,7 @@ package edu.lsu.cct.piraha;
 
 import java.util.Map;
 
-class ExtraVisitor extends Visitor {
+public class ExtraVisitor extends Visitor {
 	final Map<String, Boolean> visited;
 
 	ExtraVisitor(Map<String, Boolean> visited) {

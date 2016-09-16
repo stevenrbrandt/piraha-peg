@@ -1,6 +1,6 @@
 package edu.lsu.cct.piraha;
 
-class Mapping {
+public class Mapping {
 	int from, delta;
 	Mapping(int from,int delta) {
 		this.from = from;

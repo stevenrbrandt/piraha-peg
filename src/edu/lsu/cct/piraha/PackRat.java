@@ -19,7 +19,7 @@ public static void main(String[] args) {
 	}
 }
 */
-class PackRat {
+public class PackRat {
 	final String name;
 	final int pos;
 	final int hc;
