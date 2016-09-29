@@ -18,4 +18,5 @@ get a more detailed idea on how to write programs with Piraha.
 [CScript](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/CScript.html)
 
 [Citing Piraha](http://ieeexplore.ieee.org/document/5698011/) This is a link to the
-Piraha Paper.
+Piraha Paper. You can also cite the digital object identifier:
+[https://dx.doi.org/10.6084/m9.figshare.3837840](DOI: https://dx.doi.org/10.6084/m9.figshare.3837840)
