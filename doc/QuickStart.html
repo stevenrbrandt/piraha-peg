@@ -27,7 +27,8 @@
 
           <h1>Quick Introduction to Piraha</h1>
 
-<p>Piraha uses a subset of the syntax familiar from regular expressions in the java library: <a href="http://download-llnw.oracle.com/javase/1.4.2/docs/api/java/util/regex/Pattern.html">java.util.regex.Pattern doc</a></p>
+<p>Piraha uses a subset of the syntax familiar from regular expressions in the java library:
+<a href="https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html">java.util.regex.Pattern doc</a></p>
 
 <p>This document assumes you are already familiar with writing regular expressions using the regular expression engine that comes with java 1.4+.</p>
 
@@ -57,7 +58,8 @@ public class Test {
 </pre>
 
 <p>Basic differences are as follows:
-  * All quantifiers are possessive. What does this mean? It means that Piraha will automatically fail any pattern of the form <code>"(a*)a"</code> regardless of what string of characters you supply for text:</p>
+  <ol>
+  <li>All quantifiers are possessive. What does this mean? It means that Piraha will automatically fail any pattern of the form <code>"(a*)a"</code> regardless of what string of characters you supply for text:</p>
 <pre>
 import edu.lsu.cct.piraha.*;
 
@@ -74,7 +76,9 @@ public class Test2 {
   }
 }
 </pre>
-  <p>* All groups are independent non-capturing groups. What does this mean? It means that Piraha will fail when it gets a pattern and text like the one below. The reason is that the first version of the pattern "aaa" will match the first three characters of "aaaa", and that will leave only one "a" unmatched. Neither the sub-pattern "aaa" nor "aa" can match a single "a". However, the string "aaaaa" will succeed and the whole pattern will match.</p>
+</li>
+<li>
+  <p> All groups are independent non-capturing groups. What does this mean? It means that Piraha will fail when it gets a pattern and text like the one below. The reason is that the first version of the pattern "aaa" will match the first three characters of "aaaa", and that will leave only one "a" unmatched. Neither the sub-pattern "aaa" nor "aa" can match a single "a". However, the string "aaaaa" will succeed and the whole pattern will match.</p>
 <pre>
 import edu.lsu.cct.piraha.*;
 
@@ -89,7 +93,9 @@ public class Test3 {
   }
 }
 </pre>
-  <p>* The Pattern element {name} references a pattern element by name, and a pattern can reference itself recursively. This means that it's easy to matched balanced parenthesis in Piraha. In this example, we match a balanced angle bracket.</p>
+</li>
+<li>
+  <p> The Pattern element {name} references a pattern element by name, and a pattern can reference itself recursively. This means that it's easy to matched balanced parenthesis in Piraha. In this example, we match a balanced angle bracket.</p>
 <pre>
 import edu.lsu.cct.piraha.*;
 
@@ -97,12 +103,14 @@ public class Test4 {
   public static void main(String[] args) {
     Grammar g = new Grammar();
     g.compile("d","&lt;{d}&gt;|[a-z]+");
-    Matcher m = g.matcher("d","&lt;&lt;&gt;bar&gt;");
+    Matcher m = g.matcher("d","&lt;&lt;bar&gt;&gt;extra");
     if(m.find()) {
-      System.out.println(m.group()); // prints &lt;&gt;
+      System.out.println(m.group()); // prints &lt;&lt;bar&gt;&gt;
     }
   }
 }</pre>
+</li>
+</ol>
 
 </body>
 </html>

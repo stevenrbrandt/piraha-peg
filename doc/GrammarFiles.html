@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1" />
+    <title>Grammar Files</title>
+<style type="text/css">
+    p {
+    }
+    code {
+      font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+    }
+    pre {
+      padding: 4px;
+      background-color: #FFFFCC;
+      border: 2px solid black;
+      border-radius: 5px;
+    }
+</style>
+  </head>
+
+  <body>
+          <h1>piraha-peg - Grammar Files</h1>
+
+          <hr />
+
+  <p>The basic pattern elements were documented in <a href="ref.html">the Reference Card</a>, and the basic
+     API was documented in <a href="QuickStart.html">the Quick Start.</a> These documents show you how to compile
+     and use Piraha pattern expressions one by one. However, if you are describing a complex grammar, it is often
+     more convenient to use a <em>Grammar File.</em></p>
+  <p>A Grammar File consists of pattern definitions of the form "name=value," where the name is a c-identifier
+     (i.e. a sequence of letters, numbers, or the underscore), and value is a pattern or "pegular expression."
+     <ol>
+     <li>
+     The Grammar file uses the hash (#) as a comment character, so if you use it within a pattern you should
+     escape it (i.e. precede it with a backslash, \#).</li>
+     <li>
+     The Grammar file requires the definition of a special pattern called "skipper." The skipper typically reads
+     whitespace and/or comment characters. The skipper is inserted whenever there is a whitespace in your pattern.
+     Therefore, if you want a literal space in a Grammar File, you need to escape it as well.</li>
+     <li>
+     The last pattern in a Grammar File is the default. While you can ask the pattern matcher to use any pattern
+     in the file for matching, it is generally assumed the last one will be used.</li>
+     </ol>
+
+<p>It is not necessary to write Java code to make use of a Grammar File. Piraha comes with a generic grammar
+   compiler. You may invoke it as follows:</p>
+<pre>
+  $ java -cp piraha.jar edu.lsu.cct.piraha.examples.Generic peg-file src-file1 src-file2 ...
+</pre>
+<p>The result of running the command will be a series of files with the suffix "pegout." They will provide
+   a parse tree for your grammar in outline form. If you would prefer to see xml, you can ask for that.
+   In the example below, we provide eqn.peg as an input file:</p>
+<pre>
+skipper = [ \t\n]*
+num = [0-9]+
+mulop = [*/]
+mul = {num}( {mulop} {num})*
+addop = [+-]
+add = {mul}( {addop} {mul})*
+math = ( {add} )$
+</pre>
+ <p>We also provide eqn.in as an example source for the input file.
+<pre>
+10+9-2*3-1
+</pre>
+<p>We now run the command with --xml:</p>
+<pre>
+ $ java -cp piraha.jar edu.lsu.cct.piraha.examples.Generic --xml eqn.peg eqn.in
+ reading file: eqn.in
+ writing file: eqn.xml
+ SUCCESS: files-checked=[1] grammar=[eqn.peg]
+</pre>
+<p>And obtain the output:</p>
+<pre>
+&lt;math start='0' end='11' line='1'&gt;
+ &lt;add start='0' end='10' line='1'&gt;
+  &lt;mul start='0' end='2' line='1'&gt;
+   &lt;num start='0' end='2' line='1'&gt;10&lt;/num&gt;
+  &lt;/mul&gt;
+  &lt;addop start='2' end='3' line='1'&gt;+&lt;/addop&gt;
+  &lt;mul start='3' end='4' line='1'&gt;
+   &lt;num start='3' end='4' line='1'&gt;9&lt;/num&gt;
+  &lt;/mul&gt;
+  &lt;addop start='4' end='5' line='1'&gt;-&lt;/addop&gt;
+  &lt;mul start='5' end='8' line='1'&gt;
+   &lt;num start='5' end='6' line='1'&gt;2&lt;/num&gt;
+   &lt;mulop start='6' end='7' line='1'&gt;*&lt;/mulop&gt;
+   &lt;num start='7' end='8' line='1'&gt;3&lt;/num&gt;
+  &lt;/mul&gt;
+  &lt;addop start='8' end='9' line='1'&gt;-&lt;/addop&gt;
+  &lt;mul start='9' end='10' line='1'&gt;
+   &lt;num start='9' end='10' line='1'&gt;1&lt;/num&gt;
+  &lt;/mul&gt;
+ &lt;/add&gt;
+&lt;text&gt;10+9-2*3-1&#10;&lt;/text&gt;
+&lt;/math&gt;
+</pre>
+<p>Note that pattern names become xml node names, and each node has
+   a start position in the text, and end position, a line number,
+   and either child nodes, or the text matched by the node.
+   In addition, the full input text is captured in the text node
+   at the end.</p>
+<p>Other flags to Generic include --perl, which generates Perl5 data
+   structures as output, or --python, which generates Python data
+   structures.</p>
+
+</body>
+</html>

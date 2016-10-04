@@ -9,13 +9,23 @@ The Reference link below provides a detailed description of the pattern elements
 Quick Start describes how to use the API. See the Calculator and CSscript examples to
 get a more detailed idea on how to write programs with Piraha.
 
-[Reference](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/ref.html)
+[Reference](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/ref.html) - This
+reference card provides a description of the pattern elements that can be used in a
+"pegular expression."
 
-[Quick Start](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/QuickStart.html)
+[Quick Start](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/QuickStart.html) -
+This guide shows you how to call the Piraha engine from Java. It also explains the differences
+between the Piraha matcher and a regular expression matcher.
 
-[Calculator](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/Calculator.html)
+[Grammar Files](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/GrammarFiles.html) -
+This document explains how to construct and use Piraha expressions from inside a Grammar File,
+i.e. a file containing multiple pegular expressions.
 
-[CScript](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/CScript.html)
+[Calculator](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/Calculator.html) -
+What grammar engine is complete without a calculator example?
+
+[CScript](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/CScript.html) -
+Calculators are boring! Here's how you can write a complete language using Piraha.
 
 [Citing Piraha](http://ieeexplore.ieee.org/document/5698011/) This is a link to the
 Piraha Paper. You can also cite the digital object identifier:
