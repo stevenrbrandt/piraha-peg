@@ -106,5 +106,23 @@ math = ( {add} )$
    structures as output, or --python, which generates Python data
    structures.</p>
 
+<p>If you want to compile a grammar file within Java, you can do it
+   like this:
+<pre>
+import edu.lsu.cct.piraha.*;
+import java.io.*;
+
+public class Gram {
+  public static void main(String[] args) throws Exception {
+    Grammar g = new Grammar();
+    g.compileFile(new File("eqn.peg"));
+    String contents = Grammar.readContents(new File("eqn.in"));
+    Matcher m = g.matcher(contents);
+    if(m.match(0)) { // test for match at 0
+      m.dumpMatchesXML(); // Write matches to the screen in XML
+    }
+  }
+}
+</pre>
 </body>
 </html>
