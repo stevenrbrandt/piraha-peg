@@ -9,9 +9,14 @@ The Reference link below provides a detailed description of the pattern elements
 Quick Start describes how to use the API. See the Calculator and CSscript examples to
 get a more detailed idea on how to write programs with Piraha.
 
+Note, however, that since Piraha does not describe a <a href="https://en.wikipedia.org/wiki/Regular_language">
+Regular Language</a> the pattern expressions used to describe it are not properly called
+"regular expressions." However, because of the similarity in form between Parsing Expression
+Grammars (PEGs) and regular expressions, I use the term "pegular expressions" instead.
+
 [Reference](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/ref.html) - This
 reference card provides a description of the pattern elements that can be used in a
-"pegular expression."
+pegular expression.
 
 [Quick Start](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/QuickStart.html) -
 This guide shows you how to call the Piraha engine from Java. It also explains the differences
