@@ -8,10 +8,13 @@ skipper = ([ \t\r\n]|\#.*)*
 
 val = -?[0-9]+
 
+# A c-language identifier
+name = [a-zA-Z][a-zA-Z0-9_]*
+
 # Parenthetical expression
 paren = \( {add} \)
 
-term = ({val}|{paren})
+term = ({val}|{paren}|{name})
 
 # patterns for the operators
 mulop = [*/]
@@ -19,5 +22,6 @@ addop = [+-]
 
 mul = {term}( {mulop} {term})*
 add = {mul}( {addop} {mul})*
+assign = {name} = {add}
 
-expr = ^ {add} $
+expr = ^( {assign})* {add} $

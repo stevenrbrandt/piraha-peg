@@ -1,0 +1,8 @@
+# assign a
+a = 3 + 4
+
+# assign b
+b = 2 + 2*a
+
+# The answer
+a*b + 1

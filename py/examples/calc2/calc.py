@@ -8,14 +8,21 @@ g = Grammar()
 # Compile a grammar from a file
 compileFile(g,"calc.peg")
 
+values = {}
+
 # Process the parse tree
 def calc(gr):
+    global values
 
     # Get the name of the rule that produced this parse tree element
     n = gr.getPatternName()
 
+    # Process the read of a variable
+    if n in ["name"]:
+        return values[gr.substring()]
+
     # Process a single numeric value
-    if n == "val":
+    elif n == "val":
         return float(gr.substring())
 
     # Process an operation
@@ -35,10 +42,21 @@ def calc(gr):
                 v /= v2
         return v
 
-    elif n in ["expr", "term", "paren"]:
-        # Process the root element or a term in an expression
+    elif n in ["expr"]:
+        v = None
+        for i in range(gr.groupCount()):
+            v = calc(gr.group(i))
+        return v
+
+    elif n in ["term", "paren"]:
+        # Process a term in an expression
         # or a parenthetical expression
         return calc(gr.group(0))
+
+    elif n in ["assign"]:
+        varname = gr.group(0).substring()
+        value = calc(gr.group(1))
+        values[varname] = value
 
     else:
         raise Exception(">"+n+"<")
@@ -46,10 +64,12 @@ def calc(gr):
 # Create a matcher
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        input = "3*2 + (2+2)*1"
-        print("Using sample input:",input)
+        input_file = "calc.in"
+        print("Using sample input file:",input_file)
     else:
-        input = sys.argv[1]
+        input_file = sys.argv[1]
+    with open(input_file, "r") as fd:
+        input = fd.read()
     m = Matcher(g,g.default_rule, input)
     if m.matches():
         print("Success! Dump parse tree...")
