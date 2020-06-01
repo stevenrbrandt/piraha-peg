@@ -1,0 +1,15 @@
+# Skipper's define the pattern
+# that applies between lexical
+# elements.
+skipper = ([ \t\r\n]|\#.*)*
+
+term = -?[0-9]+
+
+# patterns for the operators
+mulop = [*/]
+addop = [+-]
+
+mul = {term}( {mulop} {term})*
+add = {mul}( {addop} {mul})*
+
+expr = ^ {add} $
