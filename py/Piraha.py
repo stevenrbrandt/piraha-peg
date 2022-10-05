@@ -1,4 +1,13 @@
 import re
+import sys
+from colored import colored
+from here import here
+
+trace = False
+
+def set_trace(t):
+    global trace
+    trace = t
 
 indent = 0
 max_int = 2147483647
@@ -51,6 +60,8 @@ class Literal:
         if m.textPos >= len(m.text):
             return False
         c = m.text[m.textPos]
+        if trace:
+            here("trace:",c,self.c,m.stack)
         if c == self.c:
             m.inc_pos()
             return True
@@ -213,7 +224,11 @@ class Lookup:
       # Replace the current groups with a new group
       if cap:
         m.gr = Group(pname,chSave.text,start,-1)
-      b = pat.match(m)
+      m.stack += [pname]
+      try:
+        b = pat.match(m)
+      finally:
+        m.stack = m.stack[:-1]
       if b:
         if cap:
           # Set the end of the current group
@@ -271,10 +286,10 @@ class NegLookAhead:
     def match(self,m):
       p  = m.textPos
       h  = m.hash
-      mx = m.maxTextPos
+      mx,ms = m.maxTextPos,m.max_stack
       b = self.pat.match(m)
       m.textPos=p
-      m.maxTextPos=mx
+      m.maxTextPos,m.max_stack=mx,ms
       m.hash = h
       return not b
 
@@ -297,10 +312,10 @@ class LookAhead:
     def match(self,m):
       p  = m.textPos
       h  = m.hash
-      mx = m.maxTextPos
+      mx,ms = m.maxTextPos,m.max_stack
       b = self.pat.match(m)
       m.textPos=p
-      m.maxTextPos=mx
+      m.maxTextPos,m.max_stack=mx,ms
       m.hash = h
       return b
 
@@ -450,13 +465,28 @@ class Dot:
     def __init__(self):
         pass
 
+class Empty:
+    def Has(self,a,b=None):
+        return self
+    def StrEq(self,a,b=None):
+        return self
+    def eval(self):
+        return False
+
+empty = Empty()
+
 class Group:
     # This class represents a node in the
     # parse tree.
+    def eval(self):
+        return True
+
+    def __repr__(self):
+        return self.dump()
 
     def group(self,n,nm=None):
       if n < 0:
-        n += self.groupCount()+1+n
+        n += self.groupCount()
       ref = self.children[n]
       if nm is not None:
         m = ref.name
@@ -464,17 +494,41 @@ class Group:
             raise Exception("wrong group '$nm' != '$m'")
       return ref
 
-    def has(self,n,nm):
+    def has(self,n,nm=None):
       if n < 0:
-        n += self.groupCount()+1+n
+        n += self.groupCount()
       if n < 0 or n >= len(self.children):
-        return False
+        return None
       ref = self.children[n]
       if nm is not None:
         m = ref.name
         if m != nm:
-            return False
+            return None 
       return ref
+
+    def Has(self,n,nm=None):
+      if n < 0:
+        n += self.groupCount()
+      if n < 0 or n >= len(self.children):
+        return empty
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.name
+        if m != nm:
+            return empty
+      return self
+
+    def StrEq(self,n,nm=None):
+      if n < 0:
+        n += self.groupCount()
+      if n < 0 or n >= len(self.children):
+        return empty
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.substring()
+        if m != nm:
+            return empty
+      return self
 
     def is_(self,nm):
       return self.name == nm
@@ -574,7 +628,8 @@ class Matcher:
     def show(self):
       print("SHOW")
 
-    def showError(self):
+    def showError(self,fd=sys.stdout):
+      print("max_stack:",self.max_stack,file=fd)
       pos = self.maxTextPos
       txt = self.text
       pre = txt[0:pos]
@@ -582,7 +637,7 @@ class Matcher:
       for c in pre:
         if c == '\n':
             line += 1
-      print("ERROR ON LINE ",line,":",sep='')
+      print(colored("ERROR ON LINE ","red"),line,":",sep='',file=fd)
       g = re.match(r'.*\n.*\n.*\n*$',pre)
       if g:
         pre = g.group(0)+'$'
@@ -598,16 +653,18 @@ class Matcher:
         if key in hash:
           del hash[key]
 
-      if pos >= len(txt):
+      if len(txt) == 0:
+        c = ""
+      elif pos >= len(txt):
         c = txt[-1]
       else:
         c = txt[pos]
       if c == "\n":
         post = ""
-      print(pre,c,post,sep='')
+      print(colored(pre,"green"),colored(c,"yellow"),colored(post,"green"),sep='',file=fd)
       g = re.search(r'.*$',pre)
-      print(" " * len(g.group(0)),"^",sep='')
-      print(" " * len(g.group(0)),"| here",sep='')
+      print(" " * len(g.group(0)),"^",sep='',file=fd)
+      print(" " * len(g.group(0)),"| here",sep='',file=fd)
       out = []
       count = []
       ks = sorted(hash.keys()) #sort keys %hash
@@ -629,13 +686,14 @@ class Matcher:
         else:
           k = out[i]
           out2 += ["'"+k+"' to '"+chr(ord(k)+count[i]-1)+"'"]
-      print("FOUND CHARACTER: ",expand_char(c),"\n",end='',sep='')
-      print("EXPECTED CHARACTER(S): ",",".join(out2),"\n",end='',sep='')
+      print("FOUND CHARACTER: ",expand_char(c),"\n",end='',sep='',file=fd)
+      print("EXPECTED CHARACTER(S): ",",".join(out2),"\n",end='',sep='',file=fd)
 
     def upos(self,pos):
       self.textPos = pos
       if pos > self.maxTextPos:
         self.maxTextPos = pos
+        self.max_stack = [k for k in self.stack]
         self.hash = {}
 
     def inc_pos(self):
@@ -643,6 +701,7 @@ class Matcher:
       pos = self.textPos
       if pos > self.maxTextPos:
         self.maxTextPos = pos
+        self.max_stack = [k for k in self.stack]
         self.hash = {}
 
     def matches(self):
@@ -659,6 +718,7 @@ class Matcher:
     def fail(self,c):
       if self.textPos > self.maxTextPos:
         self.maxTextPos = self.textPos
+        self.max_stack = [k for k in self.stack]
         self.hash = {}
       elif self.textPos == self.maxTextPos:
         pass
@@ -674,9 +734,12 @@ class Matcher:
         raise Exception(str(c))
 
     def __init__(self,grammar,pname,text):
+        self.stack = [pname]
+        self.max_stack = []
         self.text = text
         self.textPos = 0
         self.maxTextPos = 0
+        self.max_stack = []
         self.pat = grammar.patterns[pname]
         self.g = grammar
         self.gr = Group(pname,text,0,len(text))
