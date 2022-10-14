@@ -1,7 +1,7 @@
 # A simple calculator based on Piraha
 
 import sys
-from Piraha import Grammar, compileFile, Matcher
+from piraha import Grammar, compileFile, Matcher
 
 g = Grammar()
 
