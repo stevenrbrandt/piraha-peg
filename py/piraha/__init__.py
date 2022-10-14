@@ -1,7 +1,8 @@
 import re
 import sys
-from colored import colored
-from here import here
+from .colored import colored
+from .here import here
+from .version import __version__
 
 trace = False
 
