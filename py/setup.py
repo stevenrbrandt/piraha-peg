@@ -1,5 +1,14 @@
 from setuptools import setup, find_packages
-from piraha.version import __version__
+import re
+
+vfile="evshell/version.py"
+verstrline = open(vfile, "rt").read()
+VSRE = r"^__version__\s*=\s*(['\"])(.*)\1"
+g = re.search(VSRE, verstrline, re.M)
+if g:
+    __version__ = g.group(2)
+else:
+    raise RuntimeError(f"Unable to find version in file '{vfile}")
 
 setup(
   name='Piraha',
