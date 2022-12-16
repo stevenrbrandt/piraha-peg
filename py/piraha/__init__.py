@@ -1,5 +1,6 @@
 import re
 import sys
+import io
 from .colored import colored
 from .here import here
 from .version import __version__
@@ -197,6 +198,18 @@ class Bracket:
         self.neg = neg
         self.ranges = []
 
+    def __repr__(self):
+        s = '['
+        if self.neg:
+            s += '^'
+        for r in self.ranges:
+            if r[0] == r[1]:
+                s += chr(r[0])
+            else:
+                s += chr(r[0])+'-'+chr(r[1])
+        s += ']'
+        return s
+
 class Lookup:
     # Match a pattern by name. Thus, for the grammar
     # A = a
@@ -363,6 +376,9 @@ class Multi:
       self.pattern = pat
       self.mn = mn
       self.mx = mx
+
+    def __repr__(self):
+        return repr(self.pattern)+"{"+str(self.mn)+","+str(self.mx)+"}"
     
 class Or:
     # Match one of a sequence of alternatives
@@ -620,14 +636,19 @@ class Grammar:
         self.patterns = {}
 
 class Matcher:
-    # The matcher holds data relevant to the
-    # current match, i.e. the position in the
-    # text, etc. In principle, two threads
-    # could use the same pattern at the same
-    # time, but not the same matcher.
-
-    def show(self):
-      print("SHOW")
+    """
+    The matcher holds data relevant to the
+    current match, i.e. the position in the
+    text, etc. In principle, two threads
+    could use the same pattern at the same
+    time, but not the same matcher.
+    >>> g = Grammar()
+    >>> compileSrc(g,r"num=[0-9]+")
+    'num'
+    >>> m = Matcher(g,g.default_rule,"345")
+    >>> m.matches()
+    True
+    """
 
     def showError(self,fd=sys.stdout):
       print("max_stack:",self.max_stack,file=fd)
@@ -1365,3 +1386,7 @@ def parse_src(g,rule,src):
   with open(src,"r") as fd:
     src_contents = fd.read()
   return Matcher(g,rule,src_contents)
+
+def test():
+    import doctest
+    doctest.testmod(sys.modules["piraha"])
