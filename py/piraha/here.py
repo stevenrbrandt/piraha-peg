@@ -1,4 +1,4 @@
-from colored import colored
+from .colored import colored
 import os
 
 _here = os.path.realpath(os.getcwd())
