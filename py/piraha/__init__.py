@@ -1,3 +1,4 @@
+from typing import List, Optional, Union, Tuple
 import re
 import sys
 import io
@@ -7,21 +8,17 @@ from .version import __version__
 
 trace = False
 
-def set_trace(t):
-    global trace
-    trace = t
-
 indent = 0
 max_int = 2147483647
 
-def esc(s):
+def esc(s : str)->str:
     s = re.sub(r'([\\"])',r'\\\1',s)
     s = re.sub(r'\n',r'\\n',s)
     s = re.sub(r'\t',r'\\t',s)
     s = re.sub(r'\r',r'\\r',s)
     return s
 
-def fmtc(c):
+def fmtc(c : str)->str:
   if len(c) != 1:
     raise Exception("bad strlen")
   if c == " ":
@@ -34,7 +31,7 @@ def fmtc(c):
     return "{return}"
   return c
 
-def expand_char(k):
+def expand_char(k : str)->str:
   if k == "\t":
     k = "TAB"
   elif k == "\n":
@@ -52,588 +49,13 @@ def expand_char(k):
   elif k == "\e":
     k = "ESC"
   return "'"+k+"'"
-
-class Literal:
-    def possibly_zero(self):
-        return False
-    def diag(self):
-        return "Literal("+self.c+")"
-    def match(self,m):
-        if m.textPos >= len(m.text):
-            return False
-        c = m.text[m.textPos]
-        if trace:
-            here("trace:",c,self.c,m.stack)
-        if c == self.c:
-            m.inc_pos()
-            return True
-        else:
-            m.fail(self.c)
-            return False
-    def __init__(self,c):
-        self.c = c
-        if len(c) != 1:
-            raise Exception()
-
-class ILiteral:
-    def match(self,m):
-        if m.textPos >= len(m.text):
-            return False
-        c = m.text[m.textPos]
-        if c == self.lc or c == self.uc:
-            m.inc_pos()
-            return True
-        m.fail(c)
-        return False
-    def diag(self):
-        if self.uc == self.lc:
-            return "ILiteral("+self.uc+")"
-        else:
-            return "ILiteral("+self.lc+","+self.uc+")"
-    def __init__(self,c):
-        if len(c) != 1:
-            raise Exception()
-        self.lc = c.lower()
-        self.uc = c.upper()
-
-class Seq:
-    def possibly_zero(self):
-        for pat in self.patternList:
-            if pat.possibly_zero():
-                return True
-        return False
-
-    def match(self,m):
-        for pat in self.patternList:
-            if not pat.match(m):
-                return False
-        return True
-
-    def diag(self):
-        out = "Seq{"
-        tw = ""
-        for p in self.patternList:
-            if p is None:
-                out += tw + "UNDEF"
-            elif p == 0:
-                out += tw + "ZERO"
-            else:
-                out += tw + p.diag()
-            tw = ","
-        out += "}"
-        return out
-
-    def __init__(self,*patterns):
-        self.ignCase = False
-        self.igcShow = False
-        if type(patterns[0]) == list:
-            self.patternList = patterns[0]
-            self.ignCase = patterns[1]
-            self.igcShow = patterns[2]
-        else:
-            self.patternList = patterns
-
-class Bracket:
-    def addRange(self,lo,hi,igcase=False):
-        # We are expecting single characters here,
-        # not, e.g. \n, or \x{34af}.
-        if len(lo) != 1:
-            raise Exception()
-        if len(hi) != 1:
-            raise Exception()
-        # If ignorecase is on, call addRange()
-        # twice. Once with the lower, once with
-        # the upper, and don't set the igCase flag.
-        if igcase:
-          self.addRange(lo.lower(), hi.lower())
-          self.addRange(lo.upper(), hi.upper())
-          return
-        a = self.ranges
-        # Store the ascii value of the character,
-        # so that ranges can be compared numerically.
-        r = [ord(lo), ord(hi)]
-        # The upper range should be greater than or
-        # equal to the lower.
-        if r[0] > r[1]:
-            raise Exception("bad range: "+chr(r[0])+" to "+chr(r[1]))
-        a += [r]
-        return self
-
-    def match(self,m):
-        if m.textPos >= len(m.text):
-          # Fail if we're passed the end of the string
-          return False
-        rc = m.text[m.textPos]
-        # We shouldn't have an empty string here
-        c = ord(rc)
-        for r in self.ranges:
-          if r[0] <= c and c <= r[1]:
-            if not self.neg:
-              # increment position in string
-              # after a successful match
-              m.inc_pos()
-              return True
-            else:
-              m.fail(self.ranges)
-              return False
-        if not self.neg:
-          m.fail(self.ranges)
-          return False
-        else:
-          m.inc_pos()
-          return True
-
-    def diag(self):
-        out = "Bracket("
-        for r in self.ranges:
-          if r[0] == r[1]:
-            out += fmtc(chr(r[0]))
-          else:
-            out += fmtc(chr(r[0]))+"-"+fmtc(chr(r[1]))
-        out += ")"
-        return out
-
-    def __init__(self,neg=False):
-        assert type(neg)==bool
-        self.neg = neg
-        self.ranges = []
-
-    def __repr__(self):
-        s = '['
-        if self.neg:
-            s += '^'
-        for r in self.ranges:
-            if r[0] == r[1]:
-                s += chr(r[0])
-            else:
-                s += chr(r[0])+'-'+chr(r[1])
-        s += ']'
-        return s
-
-class Lookup:
-    # Match a pattern by name. Thus, for the grammar
-    # A = a
-    # B = b
-    # R = ({A}|{B})
-    # The {A} and the {B} are both "Lookup" pattern
-    # elements.
-
-    def possibly_zero(self):
-        return False
-
-    def diag(self):
-        return "Lookup("+self.name+")"
-
-    def match(self,m):
-      g = m.g # grammar
-      pname = self.name
-      pat = g.patterns[pname]
-      # Save the child groups
-      chSave = m.gr
-      # Save the start position
-      start = m.textPos
-      # Lookup patterns that begin with a - do not capture, that
-      # is they do not produce a node in the parse tree.
-      cap = self.capture
-      # Replace the current groups with a new group
-      if cap:
-        m.gr = Group(pname,chSave.text,start,-1)
-      m.stack += [pname]
-      try:
-        b = pat.match(m)
-      finally:
-        m.stack = m.stack[:-1]
-      if b:
-        if cap:
-          # Set the end of the current group
-          m.gr.end = m.textPos
-          # Append the current group the saved array of child groups
-          chSave.children += [m.gr]
-      if cap:
-        # Restore the child groups to what they were before matching
-        m.gr = chSave
-      return b
-
-    def __init__(self,name,g):
-      g = re.match(r'^-(.*)',name)
-      if g:
-        self.capture = False
-        self.name = g.group(1)
-      else:
-        self.capture = True
-        self.name = name
-      self.g = g
-
-class Break:
-    # Reprents a {brk} pattern element. This
-    # pattern element triggers an exception to
-    # be thrown, and allows the pattern matcher
-    # to escape from processing a * pattern.
-    # It's like a break from a for/while loop.
-
-    def diag(self):
-      return "Break()"
-
-    def match(self,m):
-      raise BreakOut()
-
-    def __init__(self):
-        pass
-
-class BreakOut(Exception):
-    pass
-
-class Fail(Exception):
-    pass
-
-class NegLookAhead:
-    # This pattern represents a negative
-    # lookahead assertion. It is roughly
-    # the same as it is in perl.
-    # E.g. the pattern "cat(?!s)" will match
-    # the word cat, but not if it's followed
-    # by an s.
-
-    def diag(self):
-      return "NegLookAhead("+self.pat.diag()+")"
-
-    def match(self,m):
-      p  = m.textPos
-      h  = m.hash
-      mx,ms = m.maxTextPos,m.max_stack
-      b = self.pat.match(m)
-      m.textPos=p
-      m.maxTextPos,m.max_stack=mx,ms
-      m.hash = h
-      return not b
-
-    def __init__(self,pat,ignc=False,gram=None):
-      self.pat = pat
-      self.ignCase = ignc
-      self.gram = gram
-
-class LookAhead:
-    # This pattern represents a 
-    # lookahead assertion. It is roughly
-    # the same as it is in perl.
-    # E.g. the pattern "cat(?=s)" will match
-    # the word cat, but only if it's followed
-    # by an s.
-
-    def diag(self):
-      return "LookAhead("+self.pat.diag()+")"
-
-    def match(self,m):
-      p  = m.textPos
-      h  = m.hash
-      mx,ms = m.maxTextPos,m.max_stack
-      b = self.pat.match(m)
-      m.textPos=p
-      m.maxTextPos,m.max_stack=mx,ms
-      m.hash = h
-      return b
-
-    def __init__(self,pat,ignc=False,gram=None):
-      self.pat = pat
-      self.ignCase = ignc
-      self.gram = gram
-
-class Multi:
-    # This pattern element is used to match the
-    # pattern it contains multiple times. It is
-    # used to implement the * and + pattern elements.
-
-    def match(self,m):
-      for i in range(0,self.mx+1):
-        save = m.textPos
-        nchildren = len(m.gr.children)
-        rc = None
-        try:
-          if not self.pattern.match(m) or m.textPos <= save:
-            raise Fail()
-        except Fail as e:
-            m.textPos = save
-            m.gr.children = m.gr.children[0:nchildren]
-            rc = i >= self.mn
-            return rc
-        except BreakOut as e:
-            rc = i >= self.mn
-            return rc
-      return True
-
-    def diag(self):
-      if self.pattern is None:
-        raise Exception("bad pat")
-      return "Multi("+str(self.mn)+","+str(self.mx)+","+self.pattern.diag()+")"
-
-    def __init__(self,pat,mn,mx=None):
-      if type(pat)==int and type(mn)==int:
-        mx = mn
-        mn = pat
-        pat = Nothing()
-      elif mx is None:
-        mx = mn
-      self.pattern = pat
-      self.mn = mn
-      self.mx = mx
-
-    def __repr__(self):
-        return repr(self.pattern)+"{"+str(self.mn)+","+str(self.mx)+"}"
-    
-class Or:
-    # Match one of a sequence of alternatives
-    # for a pattern, e.g. (a|b) matches either
-    # the literal a or the literal b.
-
-    def possibly_zero(self):
-      for pat in self.patterns:
-        if pat.possibly_zero():
-          return True
-      return False
-
-    def diag(self):
-      out = "Or("
-      tw = ""
-      for p in self.patterns:
-        out += tw + p.diag()
-        tw = ","
-      out += ")"
-      return out
-
-    def match(self,m):
-      save = m.textPos
-      nchildren = len(m.gr.children)
-      for pat in self.patterns:
-        # The position, as well as the length of the child
-        # nodes needs to be reset before every attempted
-        # match to prevent leftovers from failed attempted
-        # matches from lingering.
-        m.textPos = save
-        m.gr.children = m.gr.children[0:nchildren]
-        if pat.match(m):
-          # If any of the patterns works, we're done
-          return True
-      return False
-
-    def __init__(self,*args):
-      self.ignCase = False
-      self.igcShow = False
-      self.patterns = args
-      if len(args)==2 and type(args[0])==bool and type(args[1])==bool:
-        self.ignCase = args[0]
-        self.igcShow = args[1]
-        self.patterns = []
-
-class Nothing:
-    # This pattern element matches nothing.
-    # It always succeeds.
-
-    def match(self,m):
-      return True
-
-    def diag(self):
-      return "Nothing()"
-
-    def __init__(self):
-        pass
-
-class Start:
-    # This pattern element matches the start
-    # of a string.
-
-    def match(self,m):
-      return m.textPos==0
-
-    def diag(self):
-      return "Start()"
-
-    def __init__(self):
-        pass
-
-class End:
-    # This pattern element matches the end of
-    # a string.
-
-    def match(self,m):
-      return m.textPos==len(m.text) or (m.textPos+1==len(m.text) and m.text[m.textPos]=='\n')
-
-    def diag(self):
-      return "End()"
-
-    def __init__(self):
-        pass
-
-class Dot:
-    # Matches any character except \n
-
-    def diag(self):
-      return "Dot()"
-
-    def match(self,m):
-      if m.textPos >= len(m.text):
-        return False
-      c = m.text[m.textPos]
-      if re.match(r'.',c):
-        m.inc_pos()
-        return True
-      else:
-        return False
-
-    def __init__(self):
-        pass
-
-class Empty:
-    def Has(self,a,b=None):
-        return self
-    def StrEq(self,a,b=None):
-        return self
-    def eval(self):
-        return False
-
-empty = Empty()
-
-class Group:
-    # This class represents a node in the
-    # parse tree.
-    def eval(self):
-        return True
-
-    def __repr__(self):
-        return self.dump()
-
-    def group(self,n,nm=None):
-      if n < 0:
-        n += self.groupCount()
-      ref = self.children[n]
-      if nm is not None:
-        m = ref.name
-        if m != nm:
-            raise Exception("wrong group '$nm' != '$m'")
-      return ref
-
-    def has(self,n,nm=None):
-      if n < 0:
-        n += self.groupCount()
-      if n < 0 or n >= len(self.children):
-        return None
-      ref = self.children[n]
-      if nm is not None:
-        m = ref.name
-        if m != nm:
-            return None 
-      return ref
-
-    def Has(self,n,nm=None):
-      if n < 0:
-        n += self.groupCount()
-      if n < 0 or n >= len(self.children):
-        return empty
-      ref = self.children[n]
-      if nm is not None:
-        m = ref.name
-        if m != nm:
-            return empty
-      return self
-
-    def StrEq(self,n,nm=None):
-      if n < 0:
-        n += self.groupCount()
-      if n < 0 or n >= len(self.children):
-        return empty
-      ref = self.children[n]
-      if nm is not None:
-        m = ref.substring()
-        if m != nm:
-            return empty
-      return self
-
-    def is_(self,nm):
-      return self.name == nm
-
-    def groupCount(self):
-      return len(self.children)
-
-    def substring(self):
-      return self.text[self.start:self.end]
-
-    def linenum(self):
-      n = 1
-      t = self.text[0:self.start]
-      for c in t:
-        if c == '\n':
-            n += 1
-      return n
-
-    def mkstring(self,tween=" "):
-      if len(self.children) == 0:
-        return self.substring()
-      else:
-        buf = ""
-        for child in self.children:
-          if buf != '':
-            buf += tween
-          buf += child.mkstring(tween)
-        return buf
-
-    def dump(self,post=''):
-      global indent
-      pre = "\n"+("  " * indent)
-      indent += 1
-      end = "\n"+("  " * indent)
-      if len(self.children) == 0:
-        indent -= 1
-        return self.name+"(\""+esc(self.substring())+"\")"
-      else:
-        out = self.name+pre+"("+end
-        tween = ""
-        ln = len(self.children)
-        for i in range(0,ln):
-          child = self.children[i]
-          out += tween
-          out += child.dump(i<ln)
-          tween=","+end
-        if not post:
-          out += pre
-        indent -= 1
-        if post:
-            out += "\n"+("  " * indent) 
-        out += ")"
-        return out
-
-    def getPatternName(self):
-      return self.name
-
-    def __init__(self,name,text,start,end):
-      self.name = name
-      self.text = text
-      self.start = start
-      self.end = end
-      self.children = []
-
-class Boundary:
-    # This pattern element matches a "boundary"
-    # either the start of a string, the end of
-    # a string, or a transition between a c-identifier
-    # character and a non c-identifier character.
-
-    def match(self,m):
-      if m.textPos==len(m.text) or m.textPos==0:
-        return True
-      bf = m.text[m.textPos-1]
-      af = m.text[m.textPos]
-      if re.match(r'\w',bf) and re.match(r'\w',af):
-        return False
-      return True
-
-    def diag(self):
-      return "Boundary()"
-
-    def __init__(self):
-        pass
  
 class Grammar:
     def __init__(self):
         self.patterns = {}
+    def diag(self)->None:
+        for p in self.patterns:
+            print(p,"->",self.patterns[p].diag())
 
 class Matcher:
     """
@@ -643,11 +65,72 @@ class Matcher:
     could use the same pattern at the same
     time, but not the same matcher.
     >>> g = Grammar()
-    >>> compileSrc(g,r"num=[0-9]+")
-    'num'
+    >>> compileSrc(g,r"val=-?[0-9]+")
+    'val'
     >>> m = Matcher(g,g.default_rule,"345")
     >>> m.matches()
     True
+    >>> m.gr
+    val("345")
+    >>> compileSrc(g,"skipper = [ \\t]*")
+    'skipper'
+    >>> compileSrc(g,"paren = \( {add} \)")
+    'paren'
+    >>> compileSrc(g,"term = ({val}|{paren})")
+    'term'
+    >>> compileSrc(g,"mulop = [*/]")
+    'mulop'
+    >>> compileSrc(g,"addop = [+-]")
+    'addop'
+    >>> compileSrc(g,"mul = {term}( {mulop} {term})*")
+    'mul'
+    >>> compileSrc(g,"add = {mul}( {addop} {mul})*")
+    'add'
+    >>> compileSrc(g,"expr = ^ {add} $")
+    'expr'
+    >>> m = Matcher(g,g.default_rule,"3+4")
+    >>> m.matches()
+    True
+    >>> m.gr
+    expr
+    (
+      add
+      (
+        mul
+        (
+          term
+          (
+            val("3")
+          )
+        ),
+        addop("+"),
+        mul
+        (
+          term
+          (
+            val("4")
+          )
+        )
+      )
+    )
+    >>> compileSrc(g,"one=1")
+    'one'
+    >>> compileSrc(g,"onemore=(?={one}){val}")
+    'onemore'
+    >>> m = Matcher(g, g.default_rule, "144")
+    >>> m.matches()
+    True
+    >>> m.gr
+    onemore
+    (
+      one("1"),
+      val("144")
+    )
+    >>> compileSrc(g,"oneless=(?!{one}){val}")
+    'oneless'
+    >>> m = Matcher(g, g.default_rule, "144")
+    >>> m.matches()
+    False
     """
 
     def showError(self,fd=sys.stdout):
@@ -767,20 +250,600 @@ class Matcher:
         self.gr = Group(pname,text,0,len(text))
         self.hash = {}
 
-def fileparserGenerator():
+class Pattern:
+    def possibly_zero(self)->bool:
+        return False
+    def diag(self)->str:
+        return ""
+    def match(self, m:Matcher)->bool:
+        return False
+
+class Literal(Pattern):
+    def possibly_zero(self)->bool:
+        return False
+    def diag(self)->str:
+        return "Literal("+self.c+")"
+    def match(self,m:Matcher)->bool:
+        if m.textPos >= len(m.text):
+            return False
+        c = m.text[m.textPos]
+        if trace:
+            here("trace:",c,self.c,m.stack)
+        if c == self.c:
+            m.inc_pos()
+            return True
+        else:
+            m.fail(self.c)
+            return False
+    def __init__(self,c:str):
+        self.c = c
+        if len(c) != 1:
+            raise Exception()
+
+class ILiteral(Pattern):
+    def match(self,m:Matcher)->bool:
+        if m.textPos >= len(m.text):
+            return False
+        c = m.text[m.textPos]
+        if c == self.lc or c == self.uc:
+            m.inc_pos()
+            return True
+        m.fail(c)
+        return False
+    def diag(self)->str:
+        if self.uc == self.lc:
+            return "ILiteral("+self.uc+")"
+        else:
+            return "ILiteral("+self.lc+","+self.uc+")"
+    def __init__(self,c:str):
+        if len(c) != 1:
+            raise Exception()
+        self.lc = c.lower()
+        self.uc = c.upper()
+
+class Seq(Pattern):
+    def possibly_zero(self)->bool:
+        for pat in self.patternList:
+            if pat.possibly_zero():
+                return True
+        return False
+
+    def match(self,m:Matcher)->bool:
+        for pat in self.patternList:
+            if not pat.match(m):
+                return False
+        return True
+
+    def diag(self)->str:
+        out = "Seq{"
+        tw = ""
+        for p in self.patternList:
+            if p is None:
+                out += tw + "UNDEF"
+            elif p == 0:
+                out += tw + "ZERO"
+            else:
+                out += tw + p.diag()
+            tw = ","
+        out += "}"
+        return out
+
+    def __init__(self,patterns:List[Pattern],ignCase:bool=False,igcShow:bool=False):
+        self.patternList = patterns
+        self.ignCase     = ignCase
+        self.igcShow     = igcShow
+
+class Bracket(Pattern):
+    def addRange(self,lo:str,hi:str,igcase:bool=False):#->Bracket
+        # We are expecting single characters here,
+        # not, e.g. \n, or \x{34af}.
+        if len(lo) != 1:
+            raise Exception()
+        if len(hi) != 1:
+            raise Exception()
+        # If ignorecase is on, call addRange()
+        # twice. Once with the lower, once with
+        # the upper, and don't set the igCase flag.
+        if igcase:
+          self.addRange(lo.lower(), hi.lower())
+          self.addRange(lo.upper(), hi.upper())
+          return self
+        a = self.ranges
+        # Store the ascii value of the character,
+        # so that ranges can be compared numerically.
+        r = [ord(lo), ord(hi)]
+        # The upper range should be greater than or
+        # equal to the lower.
+        if r[0] > r[1]:
+            raise Exception("bad range: "+chr(r[0])+" to "+chr(r[1]))
+        a += [r]
+        return self
+
+    def match(self,m:Matcher)->bool:
+        if m.textPos >= len(m.text):
+          # Fail if we're passed the end of the string
+          return False
+        rc = m.text[m.textPos]
+        # We shouldn't have an empty string here
+        c = ord(rc)
+        for r in self.ranges:
+          if r[0] <= c and c <= r[1]:
+            if not self.neg:
+              # increment position in string
+              # after a successful match
+              m.inc_pos()
+              return True
+            else:
+              m.fail(self.ranges)
+              return False
+        if not self.neg:
+          m.fail(self.ranges)
+          return False
+        else:
+          m.inc_pos()
+          return True
+
+    def diag(self)->str:
+        out = "Bracket("
+        for r in self.ranges:
+          if r[0] == r[1]:
+            out += fmtc(chr(r[0]))
+          else:
+            out += fmtc(chr(r[0]))+"-"+fmtc(chr(r[1]))
+        out += ")"
+        return out
+
+    def __init__(self,neg:bool=False):
+        assert type(neg)==bool
+        self.neg = neg
+        self.ranges : List[List[int]] = []
+
+    def __repr__(self):
+        s = '['
+        if self.neg:
+            s += '^'
+        for r in self.ranges:
+            if r[0] == r[1]:
+                s += chr(r[0])
+            else:
+                s += chr(r[0])+'-'+chr(r[1])
+        s += ']'
+        return s
+
+class Lookup(Pattern):
+    # Match a pattern by name. Thus, for the grammar
+    # A = a
+    # B = b
+    # R = ({A}|{B})
+    # The {A} and the {B} are both "Lookup" pattern
+    # elements.
+
+    def possibly_zero(self):
+        return False
+
+    def diag(self):
+        return "Lookup("+self.name+")"
+
+    def match(self,m):
+      g = m.g # grammar
+      pname = self.name
+      pat = g.patterns[pname]
+      # Save the child groups
+      chSave = m.gr
+      # Save the start position
+      start = m.textPos
+      # Lookup patterns that begin with a - do not capture, that
+      # is they do not produce a node in the parse tree.
+      cap = self.capture
+      # Replace the current groups with a new group
+      if cap:
+        m.gr = Group(pname,chSave.text,start,-1)
+      m.stack += [pname]
+      try:
+        b = pat.match(m)
+      finally:
+        m.stack = m.stack[:-1]
+      if b:
+        if cap:
+          # Set the end of the current group
+          m.gr.end = m.textPos
+          # Append the current group the saved array of child groups
+          chSave.children += [m.gr]
+      if cap:
+        # Restore the child groups to what they were before matching
+        m.gr = chSave
+      return b
+
+    def __init__(self,name,g):
+      g = re.match(r'^-(.*)',name)
+      if g:
+        self.capture = False
+        self.name = g.group(1)
+      else:
+        self.capture = True
+        self.name = name
+      self.g = g
+
+class Break(Pattern):
+    # Reprents a {brk} pattern element. This
+    # pattern element triggers an exception to
+    # be thrown, and allows the pattern matcher
+    # to escape from processing a * pattern.
+    # It's like a break from a for/while loop.
+
+    def diag(self):
+      return "Break()"
+
+    def match(self,m):
+      raise BreakOut()
+
+    def __init__(self):
+        pass
+
+class BreakOut(Exception):
+    pass
+
+class Fail(Exception):
+    pass
+
+class NegLookAhead(Pattern):
+    # This pattern represents a negative
+    # lookahead assertion. It is roughly
+    # the same as it is in perl.
+    # E.g. the pattern "cat(?!s)" will match
+    # the word cat, but not if it's followed
+    # by an s.
+
+    def diag(self):
+      return "NegLookAhead("+self.pat.diag()+")"
+
+    def match(self,m):
+      p  = m.textPos
+      h  = m.hash
+      mx,ms = m.maxTextPos,m.max_stack
+      b = self.pat.match(m)
+      m.textPos=p
+      m.maxTextPos,m.max_stack=mx,ms
+      m.hash = h
+      return not b
+
+    def __init__(self,pat,ignc=False,gram=None):
+      self.pat = pat
+      self.ignCase = ignc
+      self.gram = gram
+
+class LookAhead(Pattern):
+    # This pattern represents a 
+    # lookahead assertion. It is roughly
+    # the same as it is in perl.
+    # E.g. the pattern "cat(?=s)" will match
+    # the word cat, but only if it's followed
+    # by an s.
+
+    def diag(self)->str:
+      return "LookAhead("+self.pat.diag()+")"
+
+    def match(self,m:Matcher)->bool:
+      p  = m.textPos
+      h  = m.hash
+      mx,ms = m.maxTextPos,m.max_stack
+      b = self.pat.match(m)
+      m.textPos=p
+      m.maxTextPos,m.max_stack=mx,ms
+      m.hash = h
+      return b
+
+    def __init__(self,pat:Pattern,ignc:bool=False,gram:Optional[Grammar]=None):
+      self.pat = pat
+      self.ignCase = ignc
+      self.gram = gram
+
+class Multi(Pattern):
+    # This pattern element is used to match the
+    # pattern it contains multiple times. It is
+    # used to implement the * and + pattern elements.
+
+    def match(self,m:Matcher)->bool:
+      for i in range(0,self.mx+1):
+        save = m.textPos
+        nchildren = len(m.gr.children)
+        rc = None
+        try:
+          if not self.pattern.match(m) or m.textPos <= save:
+            raise Fail()
+        except Fail as e:
+            m.textPos = save
+            m.gr.children = m.gr.children[0:nchildren]
+            rc = i >= self.mn
+            return rc
+        except BreakOut as e:
+            rc = i >= self.mn
+            return rc
+      return True
+
+    def diag(self)->str:
+      if self.pattern is None:
+        raise Exception("bad pat")
+      return "Multi("+str(self.mn)+","+str(self.mx)+","+self.pattern.diag()+")"
+
+    def __init__(self,pat:Optional[Pattern]=None,mn:int=0,mx:Optional[int]=None):
+      if pat is None:
+        pat = Nothing()
+      if mx is None:
+        mx = mn
+      self.pattern = pat
+      self.mn = mn
+      self.mx = mx
+
+    def __repr__(self)->str:
+        return repr(self.pattern)+"{"+str(self.mn)+","+str(self.mx)+"}"
+    
+class Or(Pattern):
+    # Match one of a sequence of alternatives
+    # for a pattern, e.g. (a|b) matches either
+    # the literal a or the literal b.
+
+    def possibly_zero(self):
+      for pat in self.patterns:
+        if pat.possibly_zero():
+          return True
+      return False
+
+    def diag(self)->str:
+      out = "Or("
+      tw = ""
+      for p in self.patterns:
+        out += tw + p.diag()
+        tw = ","
+      out += ")"
+      return out
+
+    def match(self,m:Matcher)->bool:
+      save = m.textPos
+      nchildren = len(m.gr.children)
+      for pat in self.patterns:
+        # The position, as well as the length of the child
+        # nodes needs to be reset before every attempted
+        # match to prevent leftovers from failed attempted
+        # matches from lingering.
+        m.textPos = save
+        m.gr.children = m.gr.children[0:nchildren]
+        if pat.match(m):
+          # If any of the patterns works, we're done
+          return True
+      return False
+
+    def __init__(self,*args):
+      self.ignCase = False
+      self.igcShow = False
+      self.patterns = args
+      if len(args)==2 and type(args[0])==bool and type(args[1])==bool:
+        self.ignCase = args[0]
+        self.igcShow = args[1]
+        self.patterns = []
+
+class Nothing(Pattern):
+    # This pattern element matches nothing.
+    # It always succeeds.
+
+    def match(self,m:Matcher)->bool:
+      return True
+
+    def diag(self)->str:
+      return "Nothing()"
+
+    def __init__(self):
+        pass
+
+class Start(Pattern):
+    # This pattern element matches the start
+    # of a string.
+
+    def match(self,m:Matcher)->bool:
+      return m.textPos==0
+
+    def diag(self)->str:
+      return "Start()"
+
+    def __init__(self):
+        pass
+
+class End(Pattern):
+    # This pattern element matches the end of
+    # a string.
+
+    def match(self,m:Matcher)->bool:
+      return m.textPos==len(m.text) or (m.textPos+1==len(m.text) and m.text[m.textPos]=='\n')
+
+    def diag(self)->str:
+      return "End()"
+
+    def __init__(self):
+        pass
+
+class Dot(Pattern):
+    # Matches any character except \n
+
+    def diag(self)->str:
+      return "Dot()"
+
+    def match(self,m:Matcher)->bool:
+      if m.textPos >= len(m.text):
+        return False
+      c = m.text[m.textPos]
+      if re.match(r'.',c):
+        m.inc_pos()
+        return True
+      else:
+        return False
+
+    def __init__(self):
+        pass
+
+class Empty:
+    def Has(self,a,b=None):
+        return self
+    def StrEq(self,a,b=None):
+        return self
+    def eval(self):
+        return False
+
+empty = Empty()
+
+class Group:
+    # This class represents a node in the
+    # parse tree.
+    def eval(self):
+        return True
+
+    def __repr__(self)->str:
+        return self.dump()
+
+    def group(self,n:int,nm:Optional[str]=None):
+      if n < 0:
+        n += self.groupCount()
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.name
+        if m != nm:
+            raise Exception("wrong group '$nm' != '$m'")
+      return ref
+
+    def has(self,n:int,nm:Optional[str]=None):
+      if n < 0:
+        n += self.groupCount()
+      if n < 0 or n >= len(self.children):
+        return None
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.name
+        if m != nm:
+            return None 
+      return ref
+
+    def Has(self,n:int,nm:Optional[str]=None):
+      if n < 0:
+        n += self.groupCount()
+      if n < 0 or n >= len(self.children):
+        return empty
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.name
+        if m != nm:
+            return empty
+      return self
+
+    def StrEq(self,n:int,nm:Optional[str]=None):
+      if n < 0:
+        n += self.groupCount()
+      if n < 0 or n >= len(self.children):
+        return empty
+      ref = self.children[n]
+      if nm is not None:
+        m = ref.substring()
+        if m != nm:
+            return empty
+      return self
+
+    def is_(self,nm:str)->bool:
+      return self.name == nm
+
+    def groupCount(self)->int:
+      return len(self.children)
+
+    def substring(self)->str:
+      return self.text[self.start:self.end]
+
+    def linenum(self)->int:
+      n = 1
+      t = self.text[0:self.start]
+      for c in t:
+        if c == '\n':
+            n += 1
+      return n
+
+    def mkstring(self,tween:str=" ")->str:
+      if len(self.children) == 0:
+        return self.substring()
+      else:
+        buf = ""
+        for child in self.children:
+          if buf != '':
+            buf += tween
+          buf += child.mkstring(tween)
+        return buf
+
+    def dump(self,post:str='')->str:
+      global indent
+      pre = "\n"+("  " * indent)
+      indent += 1
+      end = "\n"+("  " * indent)
+      if len(self.children) == 0:
+        indent -= 1
+        return self.name+"(\""+esc(self.substring())+"\")"
+      else:
+        out = self.name+pre+"("+end
+        tween = ""
+        ln = len(self.children)
+        for i in range(0,ln):
+          child = self.children[i]
+          out += tween
+          out += child.dump(post)
+          tween=","+end
+        if not post:
+          out += pre
+        indent -= 1
+        if post:
+            out += "\n"+("  " * indent) 
+        out += ")"
+        return out
+
+    def getPatternName(self)->str:
+      return self.name
+
+    def __init__(self,name:str,text:str,start:int,end:int):
+      self.name = name
+      self.text = text
+      self.start = start
+      self.end = end
+      self.children : List[Group] = []
+
+class Boundary(Pattern):
+    # This pattern element matches a "boundary"
+    # either the start of a string, the end of
+    # a string, or a transition between a c-identifier
+    # character and a non c-identifier character.
+
+    def match(self,m:Matcher)->bool:
+      if m.textPos==len(m.text) or m.textPos==0:
+        return True
+      bf = m.text[m.textPos-1]
+      af = m.text[m.textPos]
+      if re.match(r'\w',bf) and re.match(r'\w',af):
+        return False
+      return True
+
+    def diag(self)->str:
+      return "Boundary()"
+
+    def __init__(self):
+        pass
+
+
+def fileparserGenerator()->Grammar:
   g = Grammar()
-  g.patterns["boundary"]=(Seq(
+  g.patterns["boundary"]=(Seq([
     Literal("\\"),
-    Literal('b')))
-  g.patterns["backref"]=(Seq(
+    Literal('b')]))
+  g.patterns["backref"]=(Seq([
     Literal("\\"),
     (Bracket(False))
       .addRange('1','9')
-      ))
-  g.patterns["named"]=(Seq(
+      ]))
+  g.patterns["named"]=(Seq([
     Literal('{'),
     Lookup("name",g),
-    Literal('}')))
+    Literal('}')]))
   g.patterns["echar"]=(Literal('-'))
   g.patterns["num"]=(Multi((Bracket(False))
     .addRange('0','9')
@@ -789,35 +852,35 @@ def fileparserGenerator():
   g.patterns["pattern"]=(Or(
     Lookup("group_top",g),
     Nothing()))
-  g.patterns["range"]=(Seq(
+  g.patterns["range"]=(Seq([
     Lookup("cchar",g),
     Literal('-'),
-    Lookup("cchar",g)))
-  g.patterns["rule"]=(Seq(
+    Lookup("cchar",g)]))
+  g.patterns["rule"]=(Seq([
     Lookup("name",g),
     Lookup("-w",g),
     Literal('='),
     Lookup("-w",g),
-    Lookup("pattern",g)))
-  g.patterns["pelems_next"]=(Seq(
+    Lookup("pattern",g)]))
+  g.patterns["pelems_next"]=(Seq([
     Multi(Lookup("s",g),0,1),
     Literal('|'),
     Multi(Lookup("s",g),0,1),
     Lookup("pelem",g),
-    Multi(Seq(
+    Multi(Seq([
       Multi(Lookup("s0",g),0,1),
-      Lookup("pelem",g)),0,2147483647)))
+      Lookup("pelem",g)]),0,2147483647)]))
   g.patterns["literal"]=(Or(
-    Seq(
+    Seq([
       Literal("\\"),
       Literal('u'),
-      Lookup("hex",g)),
-    Seq(
+      Lookup("hex",g)]),
+    Seq([
       Literal("\\"),
       (Bracket(True))
         .addRange('1','9')
         .addRange('b','b')
-        ),
+        ]),
     (Bracket(True))
       .addRange("\n","\n")
       .addRange("\r","\r")
@@ -829,24 +892,24 @@ def fileparserGenerator():
       .addRange('{','}')
       ))
   g.patterns["neg"]=(Literal('^'))
-  g.patterns["file"]=(Seq(
+  g.patterns["file"]=(Seq([
     Start(),
     Multi(Lookup("-s",g),0,1),
     Lookup("rule",g),
-    Multi(Seq(
+    Multi(Seq([
       Multi(Lookup("-s",g),0,1),
-      Lookup("rule",g)),0,2147483647),
+      Lookup("rule",g)]),0,2147483647),
     Multi(Lookup("-s",g),0,1),
-    End()))
+    End()]))
   g.patterns["cchar"]=(Or(
-    Seq(
+    Seq([
       Literal("\\"),
       Literal('u'),
-      Lookup("hex",g)),
-    Seq(
+      Lookup("hex",g)]),
+    Seq([
       Literal("\\"),
       (Bracket(True))
-        ),
+        ]),
     (Bracket(True))
       .addRange('-','-')
       .addRange("\\",']')
@@ -862,12 +925,12 @@ def fileparserGenerator():
     .addRange("\t","\t")
     .addRange(' ',' ')
     ,1,2147483647))
-  g.patterns["pelems_top"]=(Seq(
+  g.patterns["pelems_top"]=(Seq([
     Lookup("pelem",g),
-    Multi(Seq(
+    Multi(Seq([
       Multi(Lookup("s0",g),0,1),
-      Lookup("pelem",g)),0,2147483647)))
-  g.patterns["group"]=(Seq(
+      Lookup("pelem",g)]),0,2147483647)]))
+  g.patterns["group"]=(Seq([
     Literal('('),
     Or(
       Lookup("ign_on",g),
@@ -878,13 +941,13 @@ def fileparserGenerator():
     Or(
       Lookup("group_inside",g),
       Nothing()),
-    Literal(')')))
-  g.patterns["ign_on"]=(Seq(
+    Literal(')')]))
+  g.patterns["ign_on"]=(Seq([
     Literal('?'),
     Literal('i'),
-    Literal(':')))
+    Literal(':')]))
   g.patterns["pelem"]=(Or(
-    Seq(
+    Seq([
       Or(
         Lookup("named",g),
         Lookup("dot",g),
@@ -894,73 +957,73 @@ def fileparserGenerator():
         Lookup("group",g)),
       Or(
         Lookup("quant",g),
-        Nothing())),
+        Nothing())]),
     Or(
       Lookup("start",g),
       Lookup("end",g),
       Lookup("boundary",g))))
   g.patterns["nothing"]=(Nothing())
-  g.patterns["group_inside"]=(Seq(
+  g.patterns["group_inside"]=(Seq([
     Lookup("pelems",g),
-    Multi(Seq(
+    Multi(Seq([
       Literal('|'),
-      Lookup("pelems",g)),0,2147483647),
+      Lookup("pelems",g)]),0,2147483647),
     Or(
-      Seq(
+      Seq([
         Multi(Lookup("s0",g),0,1),
         Lookup("nothing",g),
-        Literal('|')),
+        Literal('|')]),
       Nothing()),
-    Multi(Lookup("s",g),0,1)))
+    Multi(Lookup("s",g),0,1)]))
   g.patterns["start"]=(Literal('^'))
-  g.patterns["quantmax"]=(Seq(
+  g.patterns["quantmax"]=(Seq([
     Literal(','),
-    Multi(Lookup("num",g),0,1)))
-  g.patterns["ign_off"]=(Seq(
+    Multi(Lookup("num",g),0,1)]))
+  g.patterns["ign_off"]=(Seq([
     Literal('?'),
     Literal('-'),
     Literal('i'),
-    Literal(':')))
+    Literal(':')]))
   g.patterns["quant"]=(Or(
     Literal('+'),
     Literal('*'),
     Literal('?'),
-    Seq(
+    Seq([
       Literal('{'),
       Lookup("num",g),
       Multi(Lookup("quantmax",g),0,1),
-      Literal('}'))))
-  g.patterns["lookahead"]=(Seq(
+      Literal('}')])))
+  g.patterns["lookahead"]=(Seq([
     Literal('?'),
-    Literal('=')))
+    Literal('=')]))
   g.patterns["s"]=(Multi(Or(
     (Bracket(False))
       .addRange("\t","\n")
       .addRange("\r","\r")
       .addRange(' ',' ')
       ,
-    Seq(
+    Seq([
       Literal('#'),
-      Multi(Dot(),0,2147483647))),1,2147483647))
-  g.patterns["pelems"]=(Seq(
-    Multi(Seq(
+      Multi(Dot(),0,2147483647)])),1,2147483647))
+  g.patterns["pelems"]=(Seq([
+    Multi(Seq([
       Multi(Lookup("s",g),0,1),
-      Lookup("pelem",g)),1,2147483647),
-    Multi(Lookup("s",g),0,1)))
-  g.patterns["group_top"]=(Seq(
+      Lookup("pelem",g)]),1,2147483647),
+    Multi(Lookup("s",g),0,1)]))
+  g.patterns["group_top"]=(Seq([
     Lookup("pelems_top",g),
     Multi(Lookup("pelems_next",g),0,2147483647),
     Or(
-      Seq(
+      Seq([
         Multi(Lookup("s",g),0,1),
         Lookup("nothing",g),
-        Literal('|')),
-      Nothing())))
+        Literal('|')]),
+      Nothing())]))
   g.patterns["w"]=(Multi((Bracket(False))
     .addRange("\t","\t")
     .addRange(' ',' ')
     ,0,2147483647))
-  g.patterns["name"]=(Seq(
+  g.patterns["name"]=(Seq([
     Multi(Literal('-'),0,1),
     (Bracket(False))
       .addRange(':',':')
@@ -973,8 +1036,8 @@ def fileparserGenerator():
       .addRange('A','Z')
       .addRange('_','_')
       .addRange('a','z')
-      ,0,2147483647)))
-  g.patterns["charclass"]=(Seq(
+      ,0,2147483647)]))
+  g.patterns["charclass"]=(Seq([
     Literal('['),
     Multi(Lookup("neg",g),0,1),
     Multi(Or(
@@ -984,51 +1047,51 @@ def fileparserGenerator():
       Lookup("range",g),
       Lookup("cchar",g)),0,2147483647),
     Multi(Lookup("echar",g),0,1),
-    Literal(']')))
-  g.patterns["neglookahead"]=(Seq(
+    Literal(']')]))
+  g.patterns["neglookahead"]=(Seq([
     Literal('?'),
-    Literal('!')))
+    Literal('!')]))
   return g
 
-def reparserGenerator():
+def reparserGenerator()->Grammar:
   g = Grammar()
-  g.patterns["boundary"]=(Seq(
+  g.patterns["boundary"]=(Seq([
     Literal("\\"),
-    Literal('b')))
-  g.patterns["backref"]=(Seq(
+    Literal('b')]))
+  g.patterns["backref"]=(Seq([
     Literal("\\"),
     (Bracket(False))
       .addRange('1','9')
-      ))
-  g.patterns["named"]=(Seq(
+      ]))
+  g.patterns["named"]=(Seq([
     Literal('{'),
     Lookup("name",g),
-    Literal('}')))
+    Literal('}')]))
   g.patterns["echar"]=(Literal('-'))
   g.patterns["num"]=(Multi((Bracket(False))
     .addRange('0','9')
     ,1,2147483647))
   g.patterns["dot"]=(Literal('.'))
-  g.patterns["pattern"]=(Seq(
+  g.patterns["pattern"]=(Seq([
     Start(),
     Or(
       Lookup("group_inside",g),
       Nothing()),
-    End()))
-  g.patterns["range"]=(Seq(
+    End()]))
+  g.patterns["range"]=(Seq([
     Lookup("cchar",g),
     Literal('-'),
-    Lookup("cchar",g)))
+    Lookup("cchar",g)]))
   g.patterns["literal"]=(Or(
-    Seq(
+    Seq([
       Literal("\\"),
       Literal('u'),
-      Lookup("hex",g)),
-    Seq(
+      Lookup("hex",g)]),
+    Seq([
       Literal("\\"),
       (Bracket(True))
         .addRange('b','b')
-        ),
+        ]),
     (Bracket(True))
       .addRange('$','$')
       .addRange('(','+')
@@ -1039,14 +1102,14 @@ def reparserGenerator():
       ))
   g.patterns["neg"]=(Literal('^'))
   g.patterns["cchar"]=(Or(
-    Seq(
+    Seq([
       Literal("\\"),
       Literal('u'),
-      Lookup("hex",g)),
-    Seq(
+      Lookup("hex",g)]),
+    Seq([
       Literal("\\"),
       (Bracket(True))
-        ),
+        ]),
     (Bracket(True))
       .addRange('-','-')
       .addRange("\\",']')
@@ -1058,7 +1121,7 @@ def reparserGenerator():
     ,4,4))
   g.patterns["pipe"]=(Nothing())
   g.patterns["end"]=(Literal('$'))
-  g.patterns["group"]=(Seq(
+  g.patterns["group"]=(Seq([
     Literal('('),
     Or(
       Lookup("ign_on",g),
@@ -1069,13 +1132,13 @@ def reparserGenerator():
     Or(
       Lookup("group_inside",g),
       Nothing()),
-    Literal(')')))
-  g.patterns["ign_on"]=(Seq(
+    Literal(')')]))
+  g.patterns["ign_on"]=(Seq([
     Literal('?'),
     Literal('i'),
-    Literal(':')))
+    Literal(':')]))
   g.patterns["pelem"]=(Or(
-    Seq(
+    Seq([
       Or(
         Lookup("named",g),
         Lookup("dot",g),
@@ -1085,47 +1148,47 @@ def reparserGenerator():
         Lookup("group",g)),
       Or(
         Lookup("quant",g),
-        Nothing())),
+        Nothing())]),
     Or(
       Lookup("start",g),
       Lookup("end",g),
       Lookup("boundary",g))))
   g.patterns["nothing"]=(Nothing())
-  g.patterns["group_inside"]=(Seq(
+  g.patterns["group_inside"]=(Seq([
     Lookup("pelems",g),
-    Multi(Seq(
+    Multi(Seq([
       Literal('|'),
-      Lookup("pelems",g)),0,2147483647),
+      Lookup("pelems",g)]),0,2147483647),
     Or(
-      Seq(
+      Seq([
         Lookup("nothing",g),
-        Literal('|')),
-      Nothing())))
+        Literal('|')]),
+      Nothing())]))
   g.patterns["start"]=(Literal('^'))
-  g.patterns["quantmax"]=(Seq(
+  g.patterns["quantmax"]=(Seq([
     Literal(','),
-    Multi(Lookup("num",g),0,1)))
-  g.patterns["ign_off"]=(Seq(
+    Multi(Lookup("num",g),0,1)]))
+  g.patterns["ign_off"]=(Seq([
     Literal('?'),
     Literal('-'),
     Literal('i'),
-    Literal(':')))
+    Literal(':')]))
   g.patterns["quant"]=(Or(
     Literal('+'),
     Literal('*'),
     Literal('?'),
-    Seq(
+    Seq([
       Literal('{'),
       Lookup("num",g),
       Multi(Lookup("quantmax",g),0,1),
-      Literal('}'))))
-  g.patterns["lookahead"]=(Seq(
+      Literal('}')])))
+  g.patterns["lookahead"]=(Seq([
     Literal('?'),
-    Literal('=')))
-  g.patterns["pelems"]=(Seq(
+    Literal('=')]))
+  g.patterns["pelems"]=(Seq([
     Lookup("pelem",g),
-    Multi(Lookup("pelem",g),0,2147483647)))
-  g.patterns["name"]=(Seq(
+    Multi(Lookup("pelem",g),0,2147483647)]))
+  g.patterns["name"]=(Seq([
     Multi(Literal('-'),0,1),
     (Bracket(False))
       .addRange(':',':')
@@ -1138,8 +1201,8 @@ def reparserGenerator():
       .addRange('A','Z')
       .addRange('_','_')
       .addRange('a','z')
-      ,0,2147483647)))
-  g.patterns["charclass"]=(Seq(
+      ,0,2147483647)]))
+  g.patterns["charclass"]=(Seq([
     Literal('['),
     Multi(Lookup("neg",g),0,1),
     Multi(Or(
@@ -1149,24 +1212,24 @@ def reparserGenerator():
       Lookup("range",g),
       Lookup("cchar",g)),0,2147483647),
     Multi(Lookup("echar",g),0,1),
-    Literal(']')))
-  g.patterns["neglookahead"]=(Seq(
+    Literal(']')]))
+  g.patterns["neglookahead"]=(Seq([
     Literal('?'),
-    Literal('!')))
+    Literal('!')]))
   return g
 
 rp = reparserGenerator()
 fp = fileparserGenerator()
 
-def mkMulti(g):
+def mkMulti(g:Group)->Multi:
     if g.groupCount()==0:
         s = g.substring()
         if "*" == s:
-            return Multi(0,max_int)
+            return Multi(mn=0,mx=max_int)
         elif "+" == s:
-            return Multi(1,max_int)
+            return Multi(mn=1,mx=max_int)
         elif "?" == s:
-            return Multi(0,1)
+            return Multi(mn=0,mx=1)
     elif g.groupCount()==1:
         mn = (g.group(0).substring())
         return Multi(mn,mn)
@@ -1174,11 +1237,12 @@ def mkMulti(g):
         mn = 1*(g.group(0).substring())
         if g.group(1).groupCount()>0:
             mx = (g.group(1).group(0).substring())
-            return Multi(mn,mx)
+            return Multi(mn=mn,mx=mx)
         else:
-            return Multi(mn,max_int)
+            return Multi(mn=mn,mx=max_int)
+    raise Exception()
 
-def getChar(gr):
+def getChar(gr:Group)->str:
     if gr.groupCount()==1:
         sub = gr.group(0).substring()
         n = 0
@@ -1186,7 +1250,7 @@ def getChar(gr):
         for i in range(len(sub)):
             c = sub[i]
             if ord(c) >= ord('0') and ord(c) <= ord('9'):
-                n = n*16+ord(c)-'0'
+                n = n*16+ord(c)-ord('0')
             elif ord(c) >= ord('a') and ord(c) <= ord('f'):
                 n = n*16+ord(c)-ord('a')+10
             elif ord(c) >= ord('A') and ord(c) <= ord('F'):
@@ -1215,7 +1279,7 @@ def getChar(gr):
 # with name "literal" and a substring, "a".
 # This would then be converted to a
 # Literal() object, with $self->{c} = "a".
-def compile(g,ignCase,gram):
+def compile(g:Group,ignCase:bool,gram:Grammar)->Pattern:
     pn = g.getPatternName()
     if "literal" == pn:
         c = getChar(g)
@@ -1244,7 +1308,7 @@ def compile(g,ignCase,gram):
         if len(li)==0:
           print(g.dump(),"\n")
           raise Exception("empty")
-        return Seq(li,0,0)
+        return Seq(li,False,False)
     elif "group_inside" == pn or "group_top" == pn:
         if g.groupCount()==1:
             return compile(g.group(0),ignCase,gram)
@@ -1316,9 +1380,9 @@ def compile(g,ignCase,gram):
         return Lookup("-skipper", gram)
     elif "dot" == pn:
         return Dot()
-    elif "backref" == pn:
-        return BackRef(ord(g.substring()[1:2])-ord('0'), ignCase)
-    return None
+    #elif "backref" == pn:
+    #    return BackRef(ord(g.substring()[1:2])-ord('0'), ignCase)
+    raise Exception()
 
 # Compile an individual Piaraha pattern.
 def compilePattern(pattern):
@@ -1388,5 +1452,8 @@ def parse_src(g,rule,src):
   return Matcher(g,rule,src_contents)
 
 def test():
+    """
+    Run this method to test the Piraha package
+    """
     import doctest
     doctest.testmod(sys.modules["piraha"])
