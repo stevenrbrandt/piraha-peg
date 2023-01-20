@@ -19,5 +19,8 @@ setup(
   author='Steven R. Brandt',
   author_email='steven@stevenrbrandt.com',
   license='LGPL',
-  packages=['piraha']
+  packages=['piraha'],
+  package_data = {
+    'piraha': ['py.typed'],
+  }
 )
