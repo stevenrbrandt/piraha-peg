@@ -1,16 +1,24 @@
+from typing import Any
 import sys
 
 def not_colored(a,_):
-    return a
+    return repr(a)
 
-installed = None
+colors = {
+  "red":"\033[31m",
+  "green":"\033[32m",
+  "yellow":"\033[33m",
+  "blue":"\033[34m",
+  "magenta":"\033[35m",
+  "cyan":"\033[36m",
+}
+reset = "\033[0m"
 
-try:
-    from termcolor import colored
-    installed = True
-except:
-    colored = not_colored
-    installed = False
+def colored(arg:Any,c:str)->str:
+    assert type(c) == str
+    assert c in colors
+    s = str(arg)
+    return colors[c] + s + reset
 
 if hasattr(sys.stdout,"isatty"):
     is_tty = sys.stdout.isatty()

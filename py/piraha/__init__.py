@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Dict, cast, IO
 import re
 import sys
 import io
@@ -51,8 +51,9 @@ def expand_char(k : str)->str:
   return "'"+k+"'"
  
 class Grammar:
-    def __init__(self):
-        self.patterns = {}
+    def __init__(self)->None:
+        self.patterns : Dict[str,'Pattern']= {}
+        self.default_rule : Optional[str] = None
     def diag(self)->None:
         for p in self.patterns:
             print(p,"->",self.patterns[p].diag())
@@ -133,7 +134,19 @@ class Matcher:
     False
     """
 
-    def showError(self,fd=sys.stdout):
+    def __init__(self,grammar:Grammar,pname:str,text:str)->None:
+        self.stack : List[str] = [pname]
+        self.max_stack : List[str] = []
+        self.text = text
+        self.textPos = 0
+        self.maxTextPos = 0
+        self.max_stack = []
+        self.pat = grammar.patterns[pname]
+        self.g = grammar
+        self.gr = Group(pname,text,0,len(text))
+        self.hash : Dict[str,int] = {}
+
+    def showError(self,fd:IO[str]=sys.stdout)->None:
       print("max_stack:",self.max_stack,file=fd)
       pos = self.maxTextPos
       txt = self.text
@@ -167,11 +180,11 @@ class Matcher:
       if c == "\n":
         post = ""
       print(colored(pre,"green"),colored(c,"yellow"),colored(post,"green"),sep='',file=fd)
-      g = re.search(r'.*$',pre)
+      g = cast(re.Match[str],re.search(r'.*$',pre))
       print(" " * len(g.group(0)),"^",sep='',file=fd)
       print(" " * len(g.group(0)),"| here",sep='',file=fd)
-      out = []
-      count = []
+      out : List[str] = []
+      count : List[int] = []
       ks = sorted(hash.keys()) #sort keys %hash
       for k in ks:
         if len(out)>0 and re.match(r'[b-zB-Z1-9]',k) and ord(k) == ord(out[-1]) + count[-1]:
@@ -179,7 +192,7 @@ class Matcher:
         else:
           out += [k]
           count += [1]
-      out2 = []
+      out2 : List[str] = []
       for i in range(0,len(out)):
         if count[i]==1:
           k = out[i]
@@ -194,14 +207,14 @@ class Matcher:
       print("FOUND CHARACTER: ",expand_char(c),"\n",end='',sep='',file=fd)
       print("EXPECTED CHARACTER(S): ",",".join(out2),"\n",end='',sep='',file=fd)
 
-    def upos(self,pos):
+    def upos(self,pos:int)->None:
       self.textPos = pos
       if pos > self.maxTextPos:
         self.maxTextPos = pos
         self.max_stack = [k for k in self.stack]
         self.hash = {}
 
-    def inc_pos(self):
+    def inc_pos(self)->None:
       self.textPos += 1
       pos = self.textPos
       if pos > self.maxTextPos:
@@ -209,18 +222,18 @@ class Matcher:
         self.max_stack = [k for k in self.stack]
         self.hash = {}
 
-    def matches(self):
+    def matches(self)->bool:
       ret = self.pat.match(self)
       self.gr.end = self.textPos
       return ret
 
-    def groupCount(self):
+    def groupCount(self)->int:
       return len(self.gr.children)
 
-    def group(self,i):
+    def group(self,i:int)->'Group':
       return self.gr.children[i]
 
-    def fail(self,c):
+    def fail(self,c : Union[List[Tuple[int,int]],str])->None:
       if self.textPos > self.maxTextPos:
         self.maxTextPos = self.textPos
         self.max_stack = [k for k in self.stack]
@@ -237,18 +250,6 @@ class Matcher:
         self.hash[c] = 1
       else:
         raise Exception(str(c))
-
-    def __init__(self,grammar,pname,text):
-        self.stack = [pname]
-        self.max_stack = []
-        self.text = text
-        self.textPos = 0
-        self.maxTextPos = 0
-        self.max_stack = []
-        self.pat = grammar.patterns[pname]
-        self.g = grammar
-        self.gr = Group(pname,text,0,len(text))
-        self.hash = {}
 
 class Pattern:
     def possibly_zero(self)->bool:
@@ -320,8 +321,8 @@ class Seq(Pattern):
         for p in self.patternList:
             if p is None:
                 out += tw + "UNDEF"
-            elif p == 0:
-                out += tw + "ZERO"
+            #elif p == 0:
+            #    out += tw + "ZERO"
             else:
                 out += tw + p.diag()
             tw = ","
@@ -334,7 +335,7 @@ class Seq(Pattern):
         self.igcShow     = igcShow
 
 class Bracket(Pattern):
-    def addRange(self,lo:str,hi:str,igcase:bool=False):#->Bracket
+    def addRange(self,lo:str,hi:str,igcase:bool=False)->'Bracket':
         # We are expecting single characters here,
         # not, e.g. \n, or \x{34af}.
         if len(lo) != 1:
@@ -351,7 +352,7 @@ class Bracket(Pattern):
         a = self.ranges
         # Store the ascii value of the character,
         # so that ranges can be compared numerically.
-        r = [ord(lo), ord(hi)]
+        r = (ord(lo), ord(hi))
         # The upper range should be greater than or
         # equal to the lower.
         if r[0] > r[1]:
@@ -396,9 +397,9 @@ class Bracket(Pattern):
     def __init__(self,neg:bool=False):
         assert type(neg)==bool
         self.neg = neg
-        self.ranges : List[List[int]] = []
+        self.ranges : List[Tuple[int,int]] = []
 
-    def __repr__(self):
+    def __repr__(self)->str:
         s = '['
         if self.neg:
             s += '^'
@@ -418,13 +419,13 @@ class Lookup(Pattern):
     # The {A} and the {B} are both "Lookup" pattern
     # elements.
 
-    def possibly_zero(self):
+    def possibly_zero(self)->bool:
         return False
 
-    def diag(self):
+    def diag(self)->str:
         return "Lookup("+self.name+")"
 
-    def match(self,m):
+    def match(self,m:Matcher)->bool:
       g = m.g # grammar
       pname = self.name
       pat = g.patterns[pname]
@@ -454,11 +455,12 @@ class Lookup(Pattern):
         m.gr = chSave
       return b
 
-    def __init__(self,name,g):
-      g = re.match(r'^-(.*)',name)
-      if g:
+    def __init__(self,name : str, g:Grammar):
+      self.name : str
+      gr = re.match(r'^-(.*)',name)
+      if gr:
         self.capture = False
-        self.name = g.group(1)
+        self.name = gr.group(1)
       else:
         self.capture = True
         self.name = name
@@ -471,13 +473,13 @@ class Break(Pattern):
     # to escape from processing a * pattern.
     # It's like a break from a for/while loop.
 
-    def diag(self):
+    def diag(self)->str:
       return "Break()"
 
-    def match(self,m):
+    def match(self,m:Matcher)->bool:
       raise BreakOut()
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 class BreakOut(Exception):
@@ -494,10 +496,10 @@ class NegLookAhead(Pattern):
     # the word cat, but not if it's followed
     # by an s.
 
-    def diag(self):
+    def diag(self)->str:
       return "NegLookAhead("+self.pat.diag()+")"
 
-    def match(self,m):
+    def match(self,m:Matcher)->bool:
       p  = m.textPos
       h  = m.hash
       mx,ms = m.maxTextPos,m.max_stack
@@ -507,7 +509,7 @@ class NegLookAhead(Pattern):
       m.hash = h
       return not b
 
-    def __init__(self,pat,ignc=False,gram=None):
+    def __init__(self,pat:Pattern,ignc:bool=False,gram:Optional[Grammar]=None)->None:
       self.pat = pat
       self.ignCase = ignc
       self.gram = gram
@@ -533,7 +535,7 @@ class LookAhead(Pattern):
       m.hash = h
       return b
 
-    def __init__(self,pat:Pattern,ignc:bool=False,gram:Optional[Grammar]=None):
+    def __init__(self,pat:Pattern,ignc:bool=False,gram:Optional[Grammar]=None)->None:
       self.pat = pat
       self.ignCase = ignc
       self.gram = gram
@@ -583,7 +585,7 @@ class Or(Pattern):
     # for a pattern, e.g. (a|b) matches either
     # the literal a or the literal b.
 
-    def possibly_zero(self):
+    def possibly_zero(self)->bool:
       for pat in self.patterns:
         if pat.possibly_zero():
           return True
@@ -613,14 +615,15 @@ class Or(Pattern):
           return True
       return False
 
-    def __init__(self,*args):
+    def __init__(self,*args:Union[Pattern,bool])->None:
       self.ignCase = False
       self.igcShow = False
-      self.patterns = args
       if len(args)==2 and type(args[0])==bool and type(args[1])==bool:
         self.ignCase = args[0]
         self.igcShow = args[1]
         self.patterns = []
+      else:
+        self.patterns = cast(List[Pattern],args)
 
 class Nothing(Pattern):
     # This pattern element matches nothing.
@@ -632,7 +635,7 @@ class Nothing(Pattern):
     def diag(self)->str:
       return "Nothing()"
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 class Start(Pattern):
@@ -645,7 +648,7 @@ class Start(Pattern):
     def diag(self)->str:
       return "Start()"
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 class End(Pattern):
@@ -658,7 +661,7 @@ class End(Pattern):
     def diag(self)->str:
       return "End()"
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 class Dot(Pattern):
@@ -677,29 +680,29 @@ class Dot(Pattern):
       else:
         return False
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 class Empty:
-    def Has(self,a,b=None):
+    def Has(self,a:int,b:Optional[str]=None)->'Empty':
         return self
-    def StrEq(self,a,b=None):
+    def StrEq(self,a:int,b:Optional[str]=None)->'Empty':
         return self
-    def eval(self):
+    def eval(self)->bool:
         return False
 
 empty = Empty()
 
-class Group:
+class Group(Empty):
     # This class represents a node in the
     # parse tree.
-    def eval(self):
+    def eval(self)->bool:
         return True
 
     def __repr__(self)->str:
         return self.dump()
 
-    def group(self,n:int,nm:Optional[str]=None):
+    def group(self,n:int,nm:Optional[str]=None)->'Group':
       if n < 0:
         n += self.groupCount()
       ref = self.children[n]
@@ -709,7 +712,7 @@ class Group:
             raise Exception("wrong group '$nm' != '$m'")
       return ref
 
-    def has(self,n:int,nm:Optional[str]=None):
+    def has(self,n:int,nm:Optional[str]=None)->Optional['Group']:
       if n < 0:
         n += self.groupCount()
       if n < 0 or n >= len(self.children):
@@ -721,7 +724,7 @@ class Group:
             return None 
       return ref
 
-    def Has(self,n:int,nm:Optional[str]=None):
+    def Has(self,n:int,nm:Optional[str]=None)->Empty:
       if n < 0:
         n += self.groupCount()
       if n < 0 or n >= len(self.children):
@@ -733,7 +736,7 @@ class Group:
             return empty
       return self
 
-    def StrEq(self,n:int,nm:Optional[str]=None):
+    def StrEq(self,n:int,nm:Optional[str]=None)->Empty:
       if n < 0:
         n += self.groupCount()
       if n < 0 or n >= len(self.children):
@@ -826,7 +829,7 @@ class Boundary(Pattern):
     def diag(self)->str:
       return "Boundary()"
 
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
 
@@ -1231,12 +1234,12 @@ def mkMulti(g:Group)->Multi:
         elif "?" == s:
             return Multi(mn=0,mx=1)
     elif g.groupCount()==1:
-        mn = (g.group(0).substring())
-        return Multi(mn,mn)
+        mn = int(g.group(0).substring())
+        return Multi(None,mn,mn)
     elif g.groupCount()==2:
-        mn = 1*(g.group(0).substring())
+        mn = int(g.group(0).substring())
         if g.group(1).groupCount()>0:
-            mx = (g.group(1).group(0).substring())
+            mx = int(g.group(1).group(0).substring())
             return Multi(mn=mn,mx=mx)
         else:
             return Multi(mn=mn,mx=max_int)
@@ -1385,7 +1388,7 @@ def compile(g:Group,ignCase:bool,gram:Grammar)->Pattern:
     raise Exception()
 
 # Compile an individual Piaraha pattern.
-def compilePattern(pattern):
+def compilePattern(pattern:str)->Pattern:
   # The rules to compile a Piraha pattern
   # expression stored as a Piraha parse tree.
   grammar = reparserGenerator()
@@ -1394,28 +1397,29 @@ def compilePattern(pattern):
     # Convert a parse tree for a Piraha expression
     # into the Piraha data structures used to parse
     # code.
-    return compile(m.gr,0,grammar)
+    return compile(m.gr,False,grammar)
   else:
     m.showError()
     raise Exception()
 
-def parse(peg,src):
+def parse(peg:str,src:str)->Matcher:
   g,rule = parse_peg_src(peg)
+  assert rule is not None
   return parse_src(g,rule,src)
 
 # Open, read and parse a peg rule file.
-def parse_peg_file(peg):
+def parse_peg_file(peg:str)->Tuple[Grammar,Optional[str]]:
   with open(peg) as fd:
     peg_contents = fd.read()
   return parse_peg_src(peg_contents)
 
 # Compile a file containing Piraha rules
-def compileFile(g,fname):
+def compileFile(g:Grammar,fname:str)->Optional[str]:
   with open(fname,"r") as fd:
     buffer = fd.read()
   return compileSrc(g,buffer)
 
-def compileSrc(g,buffer):
+def compileSrc(g:Grammar,buffer:str)->Optional[str]:
   # The rules to compile a Piraha rule file
   # stored as a Piraha parse tree.
   grammar = fileparserGenerator()
@@ -1430,7 +1434,7 @@ def compileSrc(g,buffer):
     # Convert the parse tree for each Piraha rule
     # into the Piraha data structures used to parse
     # code.
-    ptmp = compile(rule.group(1), 0, grammar)
+    ptmp = compile(rule.group(1), False, grammar)
     nm = rule.group(0).substring()
     g.patterns[nm] = ptmp
     # Set the default rule.
@@ -1439,21 +1443,22 @@ def compileSrc(g,buffer):
 
 # Parse a peg rule file, return
 # a grammar and the default file
-def parse_peg_src(peg_contents):
+def parse_peg_src(peg_contents : str)->Tuple[Grammar, Optional[str]]:
   g = Grammar()
   rule = compileSrc(g,peg_contents)
   return (g,rule)
 
 # Given a grammar and a rule, parse
 # a source string which should match the rule.
-def parse_src(g,rule,src):
+def parse_src(g:Grammar,rule:str,src:str)->Matcher:
   with open(src,"r") as fd:
     src_contents = fd.read()
   return Matcher(g,rule,src_contents)
 
-def test():
+def test()->None:
     """
     Run this method to test the Piraha package
     """
     import doctest
     doctest.testmod(sys.modules["piraha"])
+    print("Test complete")

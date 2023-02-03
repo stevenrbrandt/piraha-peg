@@ -1,9 +1,10 @@
+from typing import Any
 from .colored import colored
 import os
 
 _here = os.path.realpath(os.getcwd())
 
-def here(*args):
+def here(*args : Any)->None:
     import inspect
     stack = inspect.stack()
     frame = stack[1]
