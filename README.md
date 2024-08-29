@@ -14,22 +14,22 @@ Regular Language</a> the pattern expressions used to describe it are not properl
 "regular expressions." However, because of the similarity in form between Parsing Expression
 Grammars (PEGs) and regular expressions, I use the term "pegular expressions" instead.
 
-[Reference](docs/ref.html) - This
+[Reference](https://stevenrbrandt.github.io/piraha-peg/doc/ref.html) - This
 reference card provides a description of the pattern elements that can be used in a
 pegular expression.
 
-[Quick Start](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/QuickStart.html) -
+[Quick Start](https://stevenrbrandt.github.io/piraha-peg/doc/QuickStart.html) -
 This guide shows you how to call the Piraha engine from Java. It also explains the differences
 between the Piraha matcher and a regular expression matcher.
 
-[Grammar Files](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/GrammarFiles.html) -
+[Grammar Files](https://https://stevenrbrandt.github.io/piraha-peg/doc/GrammarFiles.html) -
 This document explains how to construct and use Piraha expressions from inside a Grammar File,
 i.e. a file containing multiple pegular expressions.
 
-[Calculator](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/Calculator.html) -
+[Calculator](https://https://stevenrbrandt.github.io/piraha-peg/doc/Calculator.html) -
 What grammar engine is complete without a calculator example?
 
-[CScript](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/CScript.html) -
+[CScript](https://https://stevenrbrandt.github.io/piraha-peg/doc/CScript.html) -
 Calculators are boring! Here's how you can write a complete language using Piraha.
 
 [Citing Piraha](http://ieeexplore.ieee.org/document/5698011/) This is a link to the
