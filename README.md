@@ -14,7 +14,7 @@ Regular Language</a> the pattern expressions used to describe it are not properl
 "regular expressions." However, because of the similarity in form between Parsing Expression
 Grammars (PEGs) and regular expressions, I use the term "pegular expressions" instead.
 
-[Reference](https://cdn.rawgit.com/stevenrbrandt/piraha-peg/master/doc/ref.html) - This
+[Reference](https://github.io/stevenrbrandt/piraha-peg/blob/master/doc/ref.html) - This
 reference card provides a description of the pattern elements that can be used in a
 pegular expression.
 

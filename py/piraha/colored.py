@@ -2,7 +2,7 @@ from typing import Any
 import sys
 
 def not_colored(a,_):
-    return repr(a)
+    return str(a)
 
 colors = {
   "red":"\033[31m",
