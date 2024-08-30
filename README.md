@@ -22,14 +22,14 @@ pegular expression.
 This guide shows you how to call the Piraha engine from Java. It also explains the differences
 between the Piraha matcher and a regular expression matcher.
 
-[Grammar Files](https://https://stevenrbrandt.github.io/piraha-peg/doc/GrammarFiles.html) -
+[Grammar Files](https://stevenrbrandt.github.io/piraha-peg/doc/GrammarFiles.html) -
 This document explains how to construct and use Piraha expressions from inside a Grammar File,
 i.e. a file containing multiple pegular expressions.
 
-[Calculator](https://https://stevenrbrandt.github.io/piraha-peg/doc/Calculator.html) -
+[Calculator](https://stevenrbrandt.github.io/piraha-peg/doc/Calculator.html) -
 What grammar engine is complete without a calculator example?
 
-[CScript](https://https://stevenrbrandt.github.io/piraha-peg/doc/CScript.html) -
+[CScript](https://stevenrbrandt.github.io/piraha-peg/doc/CScript.html) -
 Calculators are boring! Here's how you can write a complete language using Piraha.
 
 [Citing Piraha](http://ieeexplore.ieee.org/document/5698011/) This is a link to the
