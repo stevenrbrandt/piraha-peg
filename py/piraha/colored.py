@@ -1,8 +1,8 @@
 from typing import Any
 import sys
 
-def not_colored(a,_):
-    return str(a)
+def not_colored(arg: Any, c: str) -> str:
+    return str(arg)
 
 colors = {
   "red":"\033[31m",
@@ -30,7 +30,7 @@ if (not is_tty) and (not is_jupyter):
     colored = not_colored
 
 if __name__ == "__main__":
-    if installed:
-        print(colored("Colored was installed","green"))
+    if is_tty or is_jupyter:
+        print(colored("Colored output is enabled","green"))
     else:
-        print("Colored was NOT installed")
+        print("Colored output is NOT enabled (not a TTY)")

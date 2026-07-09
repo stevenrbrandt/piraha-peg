@@ -12,8 +12,8 @@ def here(*args : Any)->None:
     if fname.startswith(_here):
         fname = fname[len(_here)+1:]
     print(colored("HERE:","cyan"),fname+":"+colored(frame.lineno,"yellow"), *args, flush=True)
-    frame = None
-    stack = None
+    del frame
+    del stack
 
 if __name__ == "__main__":
     here(_here)

@@ -46,7 +46,7 @@ def expand_char(k : str)->str:
     k = "BACK_QUOTE"
   elif k == "\b":
     k = "BACKSPACE"
-  elif k == "\e":
+  elif k == "\x1b":
     k = "ESC"
   return "'"+k+"'"
  
@@ -59,7 +59,7 @@ class Grammar:
             print(p,"->",self.patterns[p].diag())
 
 class Matcher:
-    """
+    r"""
     The matcher holds data relevant to the
     current match, i.e. the position in the
     text, etc. In principle, two threads
@@ -73,9 +73,9 @@ class Matcher:
     True
     >>> m.gr
     val("345")
-    >>> compileSrc(g,"skipper = [ \\t]*")
+    >>> compileSrc(g,r"skipper = [ \t]*")
     'skipper'
-    >>> compileSrc(g,"paren = \( {add} \)")
+    >>> compileSrc(g,r"paren = \( {add} \)")
     'paren'
     >>> compileSrc(g,"term = ({val}|{paren})")
     'term'
@@ -164,7 +164,8 @@ class Matcher:
       if g:
         post = g.group(0)
       post = post.strip()
-      hash = self.hash
+      # Copy so showError does not mutate matcher state
+      hash = dict(self.hash)
 
       # Don't worry about comment characters
       for key in [" ","#","\t","\n","\b","\r"]:
@@ -242,11 +243,11 @@ class Matcher:
         pass
       else:
         return
-      if type(c) == list:
+      if isinstance(c, list):
         for r in c:
           for n in range(r[0],r[1]+1):
             self.hash[chr(n)]=1
-      elif type(c) == str and len(c)==1:
+      elif isinstance(c, str) and len(c)==1:
         self.hash[c] = 1
       else:
         raise Exception(str(c))
@@ -289,7 +290,9 @@ class ILiteral(Pattern):
         if c == self.lc or c == self.uc:
             m.inc_pos()
             return True
-        m.fail(c)
+        m.fail(self.lc)
+        if self.uc != self.lc:
+            m.fail(self.uc)
         return False
     def diag(self)->str:
         if self.uc == self.lc:
@@ -304,10 +307,11 @@ class ILiteral(Pattern):
 
 class Seq(Pattern):
     def possibly_zero(self)->bool:
+        # A sequence is zero-width only if every element can be
         for pat in self.patternList:
-            if pat.possibly_zero():
-                return True
-        return False
+            if not pat.possibly_zero():
+                return False
+        return True
 
     def match(self,m:Matcher)->bool:
         for pat in self.patternList:
@@ -428,6 +432,13 @@ class Lookup(Pattern):
     def match(self,m:Matcher)->bool:
       g = m.g # grammar
       pname = self.name
+      if pname not in g.patterns:
+        if pname == "skipper":
+          raise Exception(
+              "undefined rule 'skipper' "
+              "(rules with whitespace between elements require a skipper rule, "
+              "e.g. skipper = [ \\t\\r\\n]*)")
+        raise Exception(f"undefined rule '{pname}'")
       pat = g.patterns[pname]
       # Save the child groups
       chSave = m.gr
@@ -496,6 +507,9 @@ class NegLookAhead(Pattern):
     # the word cat, but not if it's followed
     # by an s.
 
+    def possibly_zero(self)->bool:
+      return True
+
     def diag(self)->str:
       return "NegLookAhead("+self.pat.diag()+")"
 
@@ -522,6 +536,9 @@ class LookAhead(Pattern):
     # the word cat, but only if it's followed
     # by an s.
 
+    def possibly_zero(self)->bool:
+      return True
+
     def diag(self)->str:
       return "LookAhead("+self.pat.diag()+")"
 
@@ -545,8 +562,13 @@ class Multi(Pattern):
     # pattern it contains multiple times. It is
     # used to implement the * and + pattern elements.
 
+    def possibly_zero(self)->bool:
+      return self.mn == 0 or self.pattern.possibly_zero()
+
     def match(self,m:Matcher)->bool:
-      for i in range(0,self.mx+1):
+      # At most mx successful matches (same as Java Multi: i < max).
+      # Using range(mx+1) allowed one extra repetition (e.g. a? matched "aa").
+      for i in range(0, self.mx):
         save = m.textPos
         nchildren = len(m.gr.children)
         rc = None
@@ -618,16 +640,19 @@ class Or(Pattern):
     def __init__(self,*args:Union[Pattern,bool])->None:
       self.ignCase = False
       self.igcShow = False
-      if len(args)==2 and type(args[0])==bool and type(args[1])==bool:
+      if len(args)==2 and isinstance(args[0], bool) and isinstance(args[1], bool):
         self.ignCase = args[0]
         self.igcShow = args[1]
-        self.patterns = []
+        self.patterns : List[Pattern] = []
       else:
-        self.patterns = cast(List[Pattern],args)
+        self.patterns = cast(List[Pattern], list(args))
 
 class Nothing(Pattern):
     # This pattern element matches nothing.
     # It always succeeds.
+
+    def possibly_zero(self)->bool:
+      return True
 
     def match(self,m:Matcher)->bool:
       return True
@@ -642,6 +667,9 @@ class Start(Pattern):
     # This pattern element matches the start
     # of a string.
 
+    def possibly_zero(self)->bool:
+      return True
+
     def match(self,m:Matcher)->bool:
       return m.textPos==0
 
@@ -654,6 +682,9 @@ class Start(Pattern):
 class End(Pattern):
     # This pattern element matches the end of
     # a string.
+
+    def possibly_zero(self)->bool:
+      return True
 
     def match(self,m:Matcher)->bool:
       return m.textPos==len(m.text) or (m.textPos+1==len(m.text) and m.text[m.textPos]=='\n')
@@ -683,6 +714,48 @@ class Dot(Pattern):
     def __init__(self)->None:
         pass
 
+class BackRef(Pattern):
+    # Match the same text as a previously captured group.
+    # \1 refers to the first capture (0-based index 0), etc.
+    # Captures come from named lookups, e.g. {x}...\1
+
+    def diag(self)->str:
+      return "BackRef("+str(self.num+1)+")"
+
+    def match(self,m:Matcher)->bool:
+      if self.num >= m.groupCount():
+        return False
+      backRef = m.group(self.num)
+      begin = backRef.start
+      end = backRef.end
+      n = end - begin
+      pos = m.textPos
+      if pos + n > len(m.text):
+        return False
+      if self.ignCase:
+        for i in range(n):
+          c1 = m.text[begin+i]
+          c2 = m.text[pos+i]
+          if c1.lower() != c2.lower():
+            m.fail(c1.lower())
+            if c1.lower() != c1.upper():
+              m.fail(c1.upper())
+            return False
+      else:
+        for i in range(n):
+          c1 = m.text[begin+i]
+          c2 = m.text[pos+i]
+          if c1 != c2:
+            m.fail(c1)
+            return False
+      m.upos(pos + n)
+      return True
+
+    def __init__(self,num:int,ignCase:bool=False)->None:
+      # num is 1-based as written in the pattern (\1, \2, ...)
+      self.num = num - 1
+      self.ignCase = ignCase
+
 class Empty:
     def Has(self,a:int,b:Optional[str]=None)->'Empty':
         return self
@@ -709,7 +782,7 @@ class Group(Empty):
       if nm is not None:
         m = ref.name
         if m != nm:
-            raise Exception("wrong group '$nm' != '$m'")
+            raise Exception(f"wrong group '{nm}' != '{m}'")
       return ref
 
     def has(self,n:int,nm:Optional[str]=None)->Optional['Group']:
@@ -816,6 +889,9 @@ class Boundary(Pattern):
     # either the start of a string, the end of
     # a string, or a transition between a c-identifier
     # character and a non c-identifier character.
+
+    def possibly_zero(self)->bool:
+      return True
 
     def match(self,m:Matcher)->bool:
       if m.textPos==len(m.text) or m.textPos==0:
@@ -1258,6 +1334,7 @@ def getChar(gr:Group)->str:
                 n = n*16+ord(c)-ord('a')+10
             elif ord(c) >= ord('A') and ord(c) <= ord('F'):
                 n = n*16+ord(c)-ord('A')+10
+        return chr(n)
     gs = gr.substring()
     if len(gs)==2:
         # Parse an escaped character
@@ -1327,6 +1404,8 @@ def compile(g:Group,ignCase:bool,gram:Grammar)->Pattern:
         orp_ = or_
         ignC = ignCase
         inside = None
+        if g.groupCount()==0:
+            return Nothing()
         if g.groupCount()==2:
             ignC = or_.igcShow = True
             ps = g.group(0).getPatternName()
@@ -1343,10 +1422,10 @@ def compile(g:Group,ignCase:bool,gram:Grammar)->Pattern:
             inside = g.group(0)
         for i in range(inside.groupCount()):
             or_.patterns += [compile(inside.group(i),ignC,gram)]
-        if or_.igcShow == False and 1+len(or_.patterns)==1:
+        if or_.igcShow == False and len(or_.patterns)==1:
             return or_.patterns[0]
         if len(orp_.patterns)==0:
-            raise Exception()
+            return Nothing()
         return orp_
     elif "start" == pn:
         return Start()
@@ -1383,9 +1462,9 @@ def compile(g:Group,ignCase:bool,gram:Grammar)->Pattern:
         return Lookup("-skipper", gram)
     elif "dot" == pn:
         return Dot()
-    #elif "backref" == pn:
-    #    return BackRef(ord(g.substring()[1:2])-ord('0'), ignCase)
-    raise Exception()
+    elif "backref" == pn:
+        return BackRef(ord(g.substring()[1]) - ord('0'), ignCase)
+    raise Exception(f"unknown pattern: {pn}")
 
 # Compile an individual Piaraha pattern.
 def compilePattern(pattern:str)->Pattern:
@@ -1451,9 +1530,7 @@ def parse_peg_src(peg_contents : str)->Tuple[Grammar, Optional[str]]:
 # Given a grammar and a rule, parse
 # a source string which should match the rule.
 def parse_src(g:Grammar,rule:str,src:str)->Matcher:
-  with open(src,"r") as fd:
-    src_contents = fd.read()
-  return Matcher(g,rule,src_contents)
+  return Matcher(g,rule,src)
 
 def test()->None:
     """
